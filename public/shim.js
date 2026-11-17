@@ -43,12 +43,13 @@
 
   document.addEventListener('DOMContentLoaded',function(){
     var st=document.createElement('style');
-    st.textContent='.adm-l{position:fixed;top:8px;z-index:50;font:600 13px system-ui;color:#9b1d36;background:#fff;border:1px solid #9b1d36;border-radius:6px;padding:5px 10px;cursor:pointer}.adm-l:hover{background:#9b1d36;color:#fff}@media(max-width:700px){.adm-l{top:auto;bottom:10px}}'+
+    st.textContent='#adm-bar{display:flex;justify-content:flex-end;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px 0}.adm-l{font:600 13px system-ui;color:#9b1d36;background:#fff;border:1px solid #9b1d36;border-radius:6px;padding:5px 10px;cursor:pointer}.adm-l:hover{background:#9b1d36;color:#fff}'+
     '#adm-bg{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;display:flex;align-items:center;justify-content:center}#adm-box{background:#fff;border-radius:10px;padding:18px;width:min(320px,90vw);font:14px system-ui;display:grid;gap:10px}#adm-box input{padding:8px;border:1px solid #ccc;border-radius:6px;font:inherit}#adm-box button{padding:8px;border-radius:6px;border:0;background:#9b1d36;color:#fff;font:inherit;cursor:pointer}#adm-err{color:#b00;font-size:12px;min-height:1em}';
     document.head.appendChild(st);
-    var b=document.createElement('button');b.className='adm-l';b.style.right='10px';b.textContent=token()?'Déconnexion admin':'Admin';document.body.appendChild(b);
+    var bar=document.createElement('div');bar.id='adm-bar';document.body.insertBefore(bar,document.body.firstChild);
+    var b=document.createElement('button');b.className='adm-l';b.textContent=token()?'Déconnexion admin':'Admin';bar.appendChild(b);
     if(token()){
-      var im=document.createElement('button');im.className='adm-l';im.style.right='150px';im.textContent='Importer des tournois';document.body.appendChild(im);
+      var im=document.createElement('button');im.className='adm-l';im.textContent='Importer des tournois';bar.insertBefore(im,b);
       var fi=document.createElement('input');fi.type='file';fi.accept='.json';fi.hidden=true;document.body.appendChild(fi);
       im.onclick=function(){fi.click()};
       fi.onchange=function(){var f=fi.files[0];if(!f)return;f.text().then(function(t){
