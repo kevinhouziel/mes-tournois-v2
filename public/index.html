@@ -26,6 +26,7 @@ h1#x{}
 .tools{display:flex;flex-wrap:wrap;gap:6px}
 nav.tabs{display:flex;gap:2px;overflow-x:auto;overflow-y:hidden;flex:1;min-width:0}
 .tabrow{display:flex;align-items:center;gap:10px;margin-top:10px;box-shadow:inset 0 -2px 0 var(--line)}
+a.btn{text-decoration:none;display:inline-block;flex:none;color:var(--ink)}a.btn.primary{color:#fff}
 .tabrow{align-items:stretch}
 .tabrow .tools{flex:none;display:flex}
 .tabrow #homebtn{height:100%;border-radius:8px 8px 0 0;display:flex;align-items:center;padding:0 18px!important;font-size:15px!important;order:0!important}
@@ -355,7 +356,7 @@ body.ro #view input,body.ro #view select,body.ro #view textarea,body.ro #view [d
 (function(){
 'use strict';
 var KEY='tableaux-padel-v1';
-var TABS=[['accueil','Configuration'],['inscriptions','Inscriptions'],['poules','Poules'],['planning','Planning'],['pronos','Mes Pronos'],['tableau','Tableau final'],['classement','Classement'],['classif','Matchs de classement']];
+var TABS=[['accueil','Configuration'],['inscriptions','Inscriptions'],['convoc','Convocations'],['poules','Poules'],['planning','Planning'],['pronos','Mes Pronos'],['tableau','Tableau final'],['classement','Classement'],['classif','Matchs de classement']];
 var LEVELS=['P25','P50','P100','P250','P500'];
 var GENDERS=['Hommes','Dames','Mixte'];
 var FORMATS={D2:'1 set à 9 jeux, point décisif, jeu décisif à 7 points à 8/8.'};
@@ -1232,6 +1233,46 @@ function viewInscriptions(){
   return out;
 }
 
+var CONV_SUBJ='Convocation – {tournoi}';
+var CONV_BODY="Bonjour {prenoms},\n\nVous êtes convoqués au tournoi {tournoi}.\n\nVotre premier match ({poule}) est prévu à {heure}{terrain}.\nMerci d'être présents au club 30 minutes avant votre match.\n\nSportivement,\nKevin, juge-arbitre";
+function convEmails(p){var o=[];[p.a,p.b].forEach(function(pl){String(pl&&pl.email||'').split(/[\s,;]+/).forEach(function(x){if(/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(x)&&o.indexOf(x)<0)o.push(x)})});return o}
+function convFirst(id){var best=null;R.list.forEach(function(m){if((m.a===id||m.b===id)&&m.time&&(!best||m.slot<best.slot||(m.slot===best.slot&&m.court<best.court)))best=m});return best}
+function convFill(tpl,p){
+  var f=convFirst(p.id),g=-1;(R.pool||[]).forEach(function(P,i){if(P.ids.indexOf(p.id)>=0)g=i});
+  var ter=f&&S.terrains&&S.terrains[f.id]?' sur le terrain '+S.terrains[f.id]:'';
+  var map={prenoms:p.a.prenom+' et '+p.b.prenom,tournoi:tName(),poule:g>=0?'Poule '+(g+1):(f?f.title:'tableau final'),heure:f?f.time:'(horaire à venir)',terrain:ter};
+  return tpl.replace(/\{(\w+)\}/g,function(x,k){return map[k]!=null?map[k]:x});
+}
+function convLinks(to,su,body,bcc){
+  var q='su='+encodeURIComponent(su)+'&body='+encodeURIComponent(body);
+  var g='https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(to.join(','))+(bcc?'&bcc='+encodeURIComponent(bcc.join(',')):'')+'&'+q;
+  var m='mailto:'+to.map(encodeURIComponent).join(',')+'?'+(bcc?'bcc='+encodeURIComponent(bcc.join(','))+'&':'')+q;
+  return {g:g,m:m};
+}
+function viewConvoc(){
+  if(!R.ok)return needOk();
+  var M=S.meta,subj=M.convSubject!=null?M.convSubject:CONV_SUBJ,body=M.convBody!=null?M.convBody:CONV_BODY;
+  var rows='',all=[],miss=0;
+  S.pairs.forEach(function(p){
+    var b=R.by[p.id];if(!b||!b.act)return;
+    var em=convEmails(p),f=convFirst(p.id);em.forEach(function(x){if(all.indexOf(x)<0)all.push(x)});
+    var L=em.length?convLinks(em,convFill(subj,p),convFill(body,p)):null;if(!em.length)miss++;
+    rows+='<tr><td data-l="Paire"><b>'+esc(p.a.prenom+' '+p.a.nom)+'</b><br><b>'+esc(p.b.prenom+' '+p.b.nom)+'</b> <span class="sub">('+b.w+')</span></td>'+
+      '<td data-l="Emails">'+(em.length?em.map(esc).join('<br>'):'<span class="sub">Aucun e-mail</span>')+'</td>'+
+      '<td data-l="1er match">'+(f?'<b>'+esc(f.time)+'</b> '+esc(S.terrains&&S.terrains[f.id]?'T'+S.terrains[f.id]:''):'<span class="sub">—</span>')+'</td>'+
+      '<td data-l="Mail">'+(L?'<a class="btn sm primary" target="_blank" rel="noopener" href="'+esc(L.g)+'">Gmail</a> <a class="btn sm" href="'+esc(L.m)+'">Autre messagerie</a>':'<span class="sub">—</span>')+'</td></tr>';
+  });
+  var gsub=subj.replace(/\{tournoi\}/g,tName()).replace(/\s*[–-]?\s*\{\w+\}/g,'');
+  var gen=convLinks([],gsub,'Bonjour,\n\nVous êtes inscrits au tournoi '+tName()+'.\nVotre horaire de premier match est disponible sur le planning du site.\nMerci d\'être présents au club 30 minutes avant.\n\nSportivement,\nKevin, juge-arbitre',all);
+  var gm=all.length?'<a class="btn primary" target="_blank" rel="noopener" href="'+esc(gen.g)+'">Un seul mail à tous (copie cachée) – Gmail</a> <a class="btn" href="'+esc(gen.m)+'">Autre messagerie</a>':'';
+  return '<h2>Convocations</h2><p class="sub" style="margin:2px 0 10px">Le bouton ouvre un mail déjà rédigé dans ta messagerie (envoyé depuis ton adresse) : tu vérifies puis tu cliques sur Envoyer.</p>'+
+    '<section class="card"><h3>Modèle du message</h3><p class="sub">Mots remplacés automatiquement : {prenoms} {tournoi} {poule} {heure} {terrain}</p>'+
+    '<label class="f">Objet<input data-meta="convSubject" value="'+esc(subj)+'"></label>'+
+    '<label class="f">Message<textarea data-meta="convBody" rows="9" style="width:100%;font:inherit">'+esc(body)+'</textarea></label></section>'+
+    '<section class="card"><div class="row" style="align-items:center;gap:8px"><h3 style="margin:0;flex:1">Convoquer les paires</h3>'+gm+'</div>'+(miss?'<div class="notice warn" style="margin-top:8px">'+miss+' paire(s) sans adresse e-mail.</div>':'')+
+    '<div class="scroll"><table id="plantbl"><thead><tr><th>Paire</th><th>E-mails</th><th>1er match</th><th>Mail</th></tr></thead><tbody>'+rows+'</tbody></table></div></section>';
+}
+
 function needOk(){
   if(R.ok)return '';
   return '<div class="notice warn"><b>Configuration à corriger.</b><br>'+R.errors.map(esc).join('<br>')+'<br><button class="btn sm" style="margin-top:8px" data-tab="accueil">Aller à la configuration</button></div>';
@@ -1490,14 +1531,14 @@ function render(){
   var ae=document.activeElement, fk=ae&&ae.getAttribute&&ae.getAttribute('data-fk'), ss=null,se=null;
   try{ss=ae.selectionStart;se=ae.selectionEnd}catch(e){}
   var sy=window.scrollY;
-  document.body.classList.toggle('wide',tab==='accueil'||tab==='inscriptions'||tab==='pronos'||tab==='poules'||tab==='tableau'||tab==='planning'||tab==='classif'||tab==='classement');
+  document.body.classList.toggle('wide',tab==='accueil'||tab==='inscriptions'||tab==='convoc'||tab==='pronos'||tab==='poules'||tab==='tableau'||tab==='planning'||tab==='classif'||tab==='classement');
   document.getElementById('ttl').textContent=tName();var hb=document.getElementById('homebtn');if(hb)hb.textContent='← Les tournois';
   document.getElementById('subttl').textContent=R.N+' paire'+(R.N>1?'s':'')+(toInt(S.meta.teams,0)?' sur '+S.meta.teams+' prévues':'');
   var VT=['poules','tableau','classif','classement','pronos'];
   if(role==='view'&&VT.indexOf(tab)<0)tab='poules';
   if(tab==='pronos'&&!prOn())tab=role==='view'?'poules':'planning';
-  document.getElementById('tabs').innerHTML=TABS.filter(function(t){return t[0]==='pronos'?prOn():(role!=='view'||VT.indexOf(t[0])>=0)}).sort(function(a,b){var o=['accueil','inscriptions','poules','planning','pronos','tableau','classif','classement'];return o.indexOf(a[0])-o.indexOf(b[0])}).map(function(t){return '<button role="tab" aria-selected="'+(t[0]===tab)+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join('');
-  var v={accueil:viewAccueil,inscriptions:viewInscriptions,poules:viewPoules,tableau:viewTableau,classement:viewClassement,planning:viewPlanning,classif:viewClassif,pronos:viewPronos}[tab]();
+  document.getElementById('tabs').innerHTML=TABS.filter(function(t){return t[0]==='pronos'?prOn():(role!=='view'||VT.indexOf(t[0])>=0)}).sort(function(a,b){var o=['accueil','inscriptions','convoc','poules','planning','pronos','tableau','classif','classement'];return o.indexOf(a[0])-o.indexOf(b[0])}).map(function(t){return '<button role="tab" aria-selected="'+(t[0]===tab)+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join('');
+  var v={accueil:viewAccueil,inscriptions:viewInscriptions,poules:viewPoules,tableau:viewTableau,classement:viewClassement,planning:viewPlanning,classif:viewClassif,pronos:viewPronos,convoc:viewConvoc}[tab]();
   if(flash){v='<div class="notice warn">'+esc(flash)+' <button class="btn sm" data-act="flash-ok">OK</button></div>'+v}
   if(confirmNew) v='<div class="notice bad"><b>Effacer ce tournoi et en démarrer un nouveau ?</b> Pense à faire « Sauvegarde » avant. <button class="btn sm danger" data-act="new-yes">Oui, effacer</button> <button class="btn sm" data-act="new-no">Annuler</button></div>'+v;
   if(snapMode&&role==='view')v='<div class="notice warn" style="margin:0 0 8px">'+esc(snapNote())+'</div>'+v;
