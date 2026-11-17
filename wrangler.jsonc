@@ -1,0 +1,16 @@
+{
+  "name": "mes-tournois",
+  "main": "worker.js",
+  "compatibility_date": "2025-11-01",
+  "assets": {
+    "directory": "./",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "padel",
+      "database_id": "COLLEZ-ICI-L-ID-DE-LA-BASE"
+    }
+  ]
+}
