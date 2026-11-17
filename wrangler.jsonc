@@ -1,9 +1,9 @@
 {
-  "name": "mes-tournois",
+  "name": "mes-tournois-v2",
   "main": "worker.js",
   "compatibility_date": "2025-11-01",
   "assets": {
-    "directory": "./",
+    "directory": "./public",
     "run_worker_first": ["/api/*"]
   },
   "d1_databases": [

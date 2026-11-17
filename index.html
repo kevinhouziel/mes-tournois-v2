@@ -1,0 +1,1926 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"></head><body><title>Tableaux Padel</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+/* Layout: en-tête collant + onglets (Tournoi, Poules, Tableau final, Classement, Planning), contenu en cartes de match. */
+:root{
+  --bg:#FFFAF1; --surface:#ffffff; --ink:#2a1b1f; --ink2:#6f5c58; --line:#e6cdb6; color-scheme:light;
+  --court:#93172f; --court-soft:#f4e4e8; --ball:#ddd8cf; --ball-ink:#3a342c;
+  --good:#1f8a4c; --warn:#b4561b; --bad:#c0392b; --win:#e8f3ec;
+  --f-head:'Barlow Condensed','Arial Narrow',sans-serif; --f-body:'Barlow',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.45 var(--f-body);margin:0;
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:0 48px}
+h1,h2,h3{font-family:var(--f-head);font-weight:700;letter-spacing:.01em;margin:0;text-wrap:balance}
+h2{font-size:26px} h3{font-size:19px}
+button,input,select,textarea{font:inherit;color:inherit}
+.wrap{max-width:1240px;margin:0 auto}
+header.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding:12px 0 0}
+.brand{display:flex;flex-wrap:wrap;gap:8px 16px;align-items:center;justify-content:space-between}
+.brand h1{font-size:clamp(30px,3.1vw,46px);line-height:1.05;display:flex;gap:14px;align-items:center;color:var(--court)}
+.logo{background:#fff;border-radius:8px;padding:4px 8px;display:inline-flex;border:1px solid var(--line)}.logo img{height:40px;width:auto;display:block}
+h1#x{}
+.sub{color:var(--ink2);font-size:13px}
+.tools{display:flex;flex-wrap:wrap;gap:6px}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;overflow-y:hidden;margin-top:10px;box-shadow:inset 0 -2px 0 var(--line)}
+nav.tabs button{background:none;border:0;padding:13px 10px;font:600 16.5px var(--f-head);letter-spacing:.02em;text-transform:uppercase;color:var(--ink2);cursor:pointer;white-space:nowrap;border-bottom:4px solid transparent;margin-bottom:0}
+nav.tabs button{border-radius:8px 8px 0 0;transition:background .15s,color .15s}
+nav.tabs button:hover{background:var(--court-soft);color:var(--court)}
+nav.tabs button[aria-selected=true]{color:var(--court);border-bottom-color:var(--court);background:var(--court-soft)}
+@media(min-width:900px) and (max-width:1220px){nav.tabs button{font-size:14.5px;padding:13px 8px}}
+main{padding-top:20px;display:grid;gap:20px}
+.btn{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:7px 12px;cursor:pointer;font-weight:500}
+.btn:hover{border-color:var(--court)}
+.btn.primary{background:var(--court);border-color:var(--court);color:var(--surface)}
+.btn.ghost{border-color:transparent;background:none;color:var(--court)}
+.btn.sm{padding:3px 8px;font-size:13px}
+.btn.danger{color:var(--bad)}
+:focus-visible{outline:3px solid var(--court);outline-offset:1px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:16px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:repeat(auto-fit,minmax(280px,1fr))}
+.g4{grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+label.f{display:grid;gap:3px;font-size:12px;color:var(--ink2);text-transform:uppercase;letter-spacing:.05em;min-width:0}
+label.f input,label.f select{font-size:15px;text-transform:none;letter-spacing:0;color:var(--ink)}
+input,select,textarea{background:var(--surface);border:1px solid var(--line);border-radius:5px;padding:6px 8px;min-width:0;width:100%}
+.row{display:flex;flex-wrap:wrap;gap:12px;align-items:end}
+.row>*{flex:1 1 150px}
+.notice{border-left:4px solid var(--ball);background:var(--surface);padding:10px 14px;border-radius:4px;border:1px solid var(--line);border-left-width:4px}
+.notice.warn{border-left-color:var(--warn)}
+.notice.bad{border-left-color:var(--bad)}
+.scroll{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+th{font:600 13px var(--f-head);text-transform:uppercase;letter-spacing:.06em;color:var(--ink2);text-align:left;padding:6px 6px;white-space:nowrap}
+td{padding:3px 4px;border-top:1px solid var(--line);vertical-align:middle}
+td input{padding:4px 6px;min-width:90px}
+td.num{font-variant-numeric:tabular-nums;text-align:center}
+tr.pairsep td{border-top:2px solid var(--ink2)}
+.seed{display:inline-grid;place-items:center;min-width:26px;height:22px;padding:0 6px;border-radius:11px;background:var(--court-soft);color:var(--court);font:700 13px var(--f-head)}
+.pos{font:700 20px var(--f-head);color:var(--ink2)}
+.pairline{display:flex;gap:8px;align-items:center;padding:6px 0;border-top:1px solid var(--line);min-width:0}
+.pairline:first-of-type{border-top:0}
+.pairline .nm{flex:1;min-width:0}
+.pairline .pw{flex:none;font-weight:700;font-size:.82em;color:var(--ink2);font-variant-numeric:tabular-nums}
+.nm b{display:block;overflow-wrap:anywhere}
+.nm small{color:var(--ink2)}
+.pairline.sel{background:var(--ball);color:var(--ball-ink);border-radius:5px;padding-inline:6px}
+.match{border:1px solid var(--line);border-radius:7px;background:var(--surface);overflow:hidden;min-width:0}
+.match .mh{display:flex;justify-content:space-between;gap:8px;padding:4px 10px;background:var(--court-soft);font:600 13px var(--f-head);letter-spacing:.05em;text-transform:uppercase;color:var(--court)}
+.match .mt{display:flex;align-items:center;gap:8px;padding:6px 10px;border-top:1px solid var(--line);min-width:0}
+.match .mt .nm{flex:1;min-width:0;overflow-wrap:anywhere}
+.match .mt.win{background:var(--win);font-weight:600}
+.match .mt.ph{color:var(--ink2);font-style:italic}
+.stp{flex:none;width:30px;height:30px;border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:6px;font:700 18px/1 var(--f-head);cursor:pointer;padding:0}
+.stp:hover:not(:disabled){border-color:var(--court);color:var(--court)}
+.stp:disabled{opacity:.4;cursor:default}
+.match input.sc{width:54px;flex:none;text-align:center;font:700 18px var(--f-head);padding:2px;min-width:0}
+.match input.sc.err{border-color:var(--bad)}
+.stack{display:grid;gap:8px}
+.est{display:flex;flex-wrap:wrap;align-items:center;gap:.4em .6em;margin:.4em 0;padding:.35em .6em;border-radius:6px;background:var(--surface-2,rgba(128,128,128,.1));font-size:.85em;color:var(--ink-2,inherit)}
+.est b{font-family:'Barlow Condensed',sans-serif;font-size:1.25em;color:var(--ink,inherit)}
+.est.late{color:var(--warn)}.est.late b{color:var(--warn)}
+.est.worst{background:var(--warn);color:#fff}.est.worst b{color:#fff}
+.est .tag{margin-left:auto;font-weight:700;text-transform:uppercase;font-size:.78em;letter-spacing:.04em}
+.est.ok{color:var(--good)}
+.match .mh{flex-wrap:wrap}
+.mh label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+.mh input[type=checkbox],td input[type=checkbox]{width:16px;height:16px;min-width:0;padding:0;margin:0;accent-color:var(--court)}
+.match.live{border-color:var(--good);box-shadow:0 0 0 1px var(--good)}
+.match.live .mh{background:var(--win);color:var(--good)}
+.dur{font-variant-numeric:tabular-nums}
+.mhr{display:inline-flex;gap:6px;align-items:center}
+.mh select.ter,td select.ter{width:auto;min-width:0;padding:0 2px;font:600 12px var(--f-head);background:var(--surface);border:1px solid var(--line);border-radius:4px;color:var(--ink);text-transform:uppercase}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(255px,1fr));gap:10px}
+.br{display:flex;gap:28px;padding:4px 0 8px;align-items:stretch}
+.brc{display:flex;flex-direction:column;flex:1 1 0;min-width:210px}
+.brc>h3{color:var(--surface);background:var(--court);font-size:15px;text-transform:uppercase;letter-spacing:.08em;text-align:center;padding:5px 8px;border-radius:4px;margin-bottom:8px}
+.brc .body{display:flex;flex-direction:column;flex:1}
+.unit{flex:1;display:flex;align-items:center;position:relative;padding:5px 0}
+.unit>.match{flex:1}
+.pairbox{flex:1;display:flex;flex-direction:column;position:relative}
+.unit.sl::before,.unit.sr::after{content:"";position:absolute;top:50%;width:14px;border-top:2px solid var(--ink2)}
+.unit.sl::before{left:-14px}
+.unit.sr::after{right:-14px}
+.pairbox::after{content:"";position:absolute;top:25%;bottom:25%;width:14px;border:2px solid var(--ink2)}
+.pairbox.bl::after{right:-14px;border-left:0}
+.pairbox.br2::after{left:-14px;border-right:0}
+.pill{font-size:11px}
+.bracket{display:grid;grid-template-columns:1fr 1fr 1.05fr 1fr 1fr;column-gap:28px;row-gap:10px;overflow-x:auto;padding:4px 0 8px;min-width:0}
+.bracket>h3{color:var(--surface);background:var(--court);font-size:15px;text-transform:uppercase;letter-spacing:.08em;text-align:center;padding:5px 8px;border-radius:4px;min-width:200px}
+.bcol{display:flex;flex-direction:column;justify-content:space-around;gap:16px;position:relative;min-width:200px}
+.slot{position:relative}
+.slot::after,.bcol.sf::before,.bcol.sf::after,.bcol.fi::before,.bcol.fi::after{content:"";position:absolute;top:50%;width:14px;border-top:2px solid var(--ink2)}
+.bcol.sf::before,.bcol.fi::before{left:-14px}
+.bcol.sf::after,.bcol.fi::after{right:-14px}
+.bcol.sf::after{width:14px}
+.bcol.fi::before,.bcol.fi::after{width:14px}
+.bcol.qf.l .slot::after{right:-14px}
+.bcol.qf.r .slot::after{left:-14px}
+.bcol.qf.l::after,.bcol.qf.r::before{content:"";position:absolute;top:25%;bottom:25%;width:14px;border:2px solid var(--ink2)}
+.bcol.qf.l::after{right:-14px;border-left:0}
+.bcol.qf.r::before{left:-14px;border-right:0}
+.pill{display:inline-block;padding:1px 8px;border-radius:10px;font-size:12px;font-weight:600;background:var(--court-soft);color:var(--court)}
+.pill.ok{background:var(--win);color:var(--good)}
+.stand td,.stand th{padding:3px 6px}
+.podium td.pl{font:700 22px var(--f-head);width:48px}
+.podium td,.podium th{white-space:nowrap}
+.wide .podium td{padding:.45em .7em}
+.pts{font:700 20px var(--f-head);color:var(--court);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink2)}
+.status{font-size:12px;color:var(--ink2)}
+.hide-sm{}
+@media (max-width:640px){.brand h1{font-size:24px}.hide-sm{display:none}}
+@media (prefers-reduced-motion:no-preference){.btn{transition:border-color .15s}}
+.pc{padding:.4em .55em;font-size:calc(clamp(11px,.96vw,18px) * var(--pfit,1));display:flex;flex-direction:column}
+.pc .est{margin:.25em 0;padding:.2em .5em}
+.pc .stack{gap:.25em}
+.pc .stand{margin-top:.2em}
+.pc h3{font-size:1.3em}
+.pc .pairline{padding:.1em 0;gap:.4em}
+.pc .pos{font-size:1.2em}
+.pc .nm b{font-size:1em;line-height:1.2}
+.nm .rk{font-weight:500;color:var(--ink2);font-size:.8em}
+.pc .nm small{display:block;font-size:.8em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pc .stack{gap:.4em}
+.pc .match .mh{padding:.1em .6em;font-size:.85em}
+.pc .match .mt{padding:.15em .5em;gap:.3em;font-size:1em;line-height:1.2}
+.pc .match input.sc{width:2.2em;font-size:1.1em;padding:.05em;height:1.6em}
+.pc .stp{width:1.6em;height:1.6em;font-size:1.05em}
+.pc .match .seed{min-width:1.7em;height:1.4em;font-size:.8em;padding:0 .3em}
+.pc .stand{font-size:inherit}
+.pc .stand td,.pc .stand th{padding:.12em .3em;font-size:.95em;white-space:nowrap}
+.pc .btn.sm{padding:0 .5em;font-size:.85em;min-height:1.7em}
+.pc .pill{font-size:.8em}
+.pc .mh select.ter{font-size:.85em}
+/* états de match */
+.match.todo{border-style:dashed;background:transparent}
+.match.todo .mh{background:transparent;color:var(--ink2)}
+.match.todo .mt{color:var(--ink2)}
+.match.live{border-width:2px}
+.match.live .stl{animation:pulse 1.4s ease-in-out infinite}
+.match.done{border-color:var(--court);border-left-width:4px}
+.match.done .mh{background:var(--court);color:#fff}
+.match.done .mh label{color:#fff}
+.match.done .mt:not(.win){color:var(--ink2)}
+.match .stl{font-weight:700;letter-spacing:.02em}.pc .match .mhr{white-space:nowrap;gap:.4em}.pc .match .mhr>*{white-space:nowrap}
+@keyframes pulse{50%{opacity:.45}}
+@media (prefers-reduced-motion:reduce){.match.live .stl{animation:none}}
+#plantbl td{vertical-align:middle}
+.dhc{white-space:nowrap;width:1%}
+.dh{cursor:grab;user-select:none;padding:2px 6px;color:var(--ink2);font-size:18px}
+.dh:active{cursor:grabbing}
+.mv{border:1px solid var(--line);background:var(--surface);color:var(--ink2);border-radius:4px;font-size:10px;padding:0 4px;height:20px;cursor:pointer}
+.mv:disabled{opacity:.3;cursor:default}
+tr.dragging{opacity:.35}
+tr.ovt td{box-shadow:inset 0 3px 0 var(--court)}
+tr.ovb td{box-shadow:inset 0 -3px 0 var(--court)}
+.endest b{font:700 17px var(--f-head);color:var(--court)}
+.bz{font-size:clamp(11px,min(1.1vw,1.7vh),21px)}
+.bz .notice{padding:6px 12px;margin:4px 0}
+.bz .match .mh{padding:.2em .6em;font-size:.9em}
+.bz .match .mt{padding:.3em .55em;gap:.35em;font-size:1em;line-height:1.2}
+.bz.clsonly{font-size:clamp(14px,1.35vw,24px)}
+.bz.mainonly{font-size:clamp(12px,1.1vw,23px)}
+.bz{min-width:0;max-width:100%}
+.wide .bz.mainonly{padding:0}
+.bz.mainonly .row{flex-wrap:wrap}
+.bz.mainonly .btn{font-size:.75em}
+.bz.mainonly .br{gap:1.6vw;min-height:calc(100vh - 380px)}
+.bz.mainonly .br>.brw>.brc{flex:1.1 1 0}
+.bz.mainonly .br.kof>.brw>.brc{flex:1 1 0}
+.bz.mainonly .br.kof{min-width:0!important;margin:0 auto;justify-content:center;min-height:calc(100vh - 420px);align-items:center}.bz.mainonly .br.kof2{max-width:820px;gap:3vw}.bz.mainonly .br.kof1{max-width:430px}
+.bz.mainonly .br:not(.kof)>.brw:nth-child(3)>.brc{flex-grow:1.35}
+.bz.mainonly .br:not(.kof)>.brw:nth-child(2)>.brc,.bz.mainonly .br:not(.kof)>.brw:nth-child(4)>.brc{flex-grow:1.2}
+.bz.mainonly .brc>h3{background:none;color:var(--court);border-bottom:3px solid var(--court);border-radius:0;font-size:1em;letter-spacing:.12em;padding:.2em 0 .45em;margin-bottom:.9em;white-space:nowrap;overflow-wrap:normal}
+.bz.mainonly .brc>h3[data-act]{cursor:pointer;transition:background .15s,color .15s}
+.bz.mainonly .brc>h3[data-act]:hover{background:var(--court-soft)}
+.bz.mainonly .brc>h3.on{background:var(--court);color:var(--surface);border-radius:6px 6px 0 0}
+.br.kof .unit::before,.br.kof .unit::after,.br.kof .pairbox::before,.br.kof .pairbox::after{display:none!important}
+.bz.mainonly .brc>h3.on:hover{background:var(--court)}
+.bz.mainonly .match .mh{flex-wrap:nowrap!important;gap:.3em;font-size:.68em!important;padding:.5em .5em!important;white-space:nowrap}
+.bz.mainonly .match .mh label{gap:.25em}
+.bz.mainonly .match .mh select.ter{font-size:.95em;padding:0 .1em;max-width:7.4em}
+@media (max-width:1400px){.bz.mainonly .mh{font-size:.54em!important;padding:.5em .3em!important;gap:.15em;letter-spacing:0}.bz.mainonly .mh select.ter{max-width:5.2em}}
+.bz.mainonly .match .mh .mhr{display:flex;align-items:center;gap:.4em;margin-left:auto;flex-wrap:nowrap;white-space:nowrap}
+.bz.mainonly .match{background:#fff;border:1px solid var(--line);border-left:.45em solid var(--ink2);border-radius:8px;box-shadow:0 2px 8px rgba(40,20,25,.08)}
+.bz.mainonly .br>.brw:nth-child(2) .match,.bz.mainonly .br>.brw:nth-child(4) .match{border-left-color:var(--court)}
+.bz.mainonly .br>.brw:nth-child(3) .match{border:2px solid var(--court);border-left-width:.6em;box-shadow:0 8px 26px rgba(147,23,47,.2);font-size:1.12em}
+.bz.mainonly .match .mh{background:transparent;color:var(--ink2);flex-wrap:wrap;padding:.4em .7em;font-size:.88em;white-space:nowrap;border-bottom:1px solid var(--line)}
+.bz.mainonly .match .mt{padding:.85em .7em;font-size:1.05em;font-weight:600}
+.bz.mainonly .match .mt.ph{font-weight:400}
+.bz.mainonly .match .mt.ph .nm{font-size:.82em!important}
+.bz.mainonly .br>.brw:nth-child(2) .mt.ph .nm,.bz.mainonly .br>.brw:nth-child(4) .mt.ph .nm{font-size:.7em!important}
+.bz.mainonly .stp{width:1.05em;height:1.05em;font-size:.85em;min-width:0;padding:0}
+.bz.mainonly .match input.sc{width:1.45em;height:1.5em;padding:0;font-weight:700;font-size:.95em}
+.bz.mainonly .match .sw,.bz.mainonly .match .scw{gap:.2em}
+.bz.mainonly .match .mt{gap:.3em}
+.clsboard{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,2.3fr);gap:2.4vw;align-items:start;margin-top:10px}
+.cbh{color:var(--surface);background:var(--court);font-size:1.05em;text-transform:uppercase;letter-spacing:.08em;text-align:center;padding:.35em .6em;border-radius:4px;margin:0 0 .6em}
+.cbs{font:600 .8em var(--f-head);letter-spacing:.06em;text-transform:uppercase;color:var(--court);margin:.2em 0 .35em}
+.cb4 .cbh{background:var(--ink2)}
+.c58{display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);gap:1.2vw;align-items:center}
+.c58a,.c58b{display:flex;flex-direction:column;gap:.7em}
+.c58x{font-size:2em;color:var(--court);opacity:.6}
+@media (max-width:900px){.clsboard{grid-template-columns:1fr}.c58{grid-template-columns:1fr}.c58x{transform:rotate(90deg);text-align:center}}
+.bz .match .mt.ph .nm{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;overflow-wrap:normal;font-size:.84em}
+@media (min-width:701px) and (max-width:1320px){.bz .match .mt.ph .nm{font-size:.72em}}
+.bz.clsonly .match .mt.ph .nm{font-size:.95em!important}
+.bz .match input.sc{width:2.3em;font-size:1.15em;padding:.05em;height:1.7em}
+.bz .stp{width:1.7em;height:1.7em;font-size:1.05em}
+.bz .match .seed{min-width:1.8em;height:1.4em;font-size:.8em;padding:0 .3em}
+.bz .brc>h3{font-size:1.05em}
+.bz .mh select.ter{font-size:.85em}
+.wide .brc{min-width:0}
+@keyframes pop{0%{background:var(--court);color:#fff;transform:scale(1.04)}100%{transform:scale(1)}}
+.mt.pop{animation:pop 1s ease;position:relative;z-index:2}
+.mt.veil{background:var(--surface)}
+.mt.veil .nm{color:var(--ink2);font-weight:700;letter-spacing:.3em;text-align:center}
+@keyframes jit{0%{transform:translate(0,0)}25%{transform:translate(-2px,1px) rotate(-.4deg)}50%{transform:translate(2px,-1px) rotate(.4deg)}75%{transform:translate(-1px,-1px)}100%{transform:translate(0,0)}}
+.mt.veil.shuf{animation:jit .22s linear infinite;background:linear-gradient(100deg,rgba(147,23,47,.10),rgba(147,23,47,.28),rgba(147,23,47,.10));background-size:200% 100%}
+.mt.veil.shuf .nm{color:var(--court);letter-spacing:0;font-style:italic;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;filter:blur(.4px)}
+.wide .bz{padding:0 2.4vw}
+#drawcard{position:fixed;z-index:50;pointer-events:none;width:min(46vw,640px);text-align:center;padding:.7em 1em;border-radius:14px;background:rgba(147,23,47,.82);color:#fff;box-shadow:0 12px 40px rgba(0,0,0,.28);backdrop-filter:blur(2px);opacity:0}
+#drawcard .dc1{font:700 clamp(22px,3.2vw,48px)/1.1 'Barlow Condensed',sans-serif;text-transform:uppercase}
+#drawcard.lock{animation:lockpop .5s ease}
+@keyframes lockpop{0%{filter:brightness(1.5)}100%{filter:none}}
+#drawcard .dc2{font-size:clamp(14px,1.4vw,22px);opacity:.9;margin-top:.2em}
+.cls{display:flex;flex-wrap:wrap;gap:14px;margin-top:6px}
+.cs{min-width:0}
+.cs>h3{font-size:.95em;margin:0 0 5px;color:var(--court);text-transform:uppercase;letter-spacing:.06em}
+.csg{display:grid;gap:8px;align-items:start}
+.bz .br{padding:0}
+.bz .brc>h3{padding:3px 8px;margin-bottom:5px}
+.drawbar{display:flex;align-items:center;gap:1.2em;flex-wrap:wrap;background:var(--court);color:#fff;border-radius:8px;padding:.7em 1em;margin:.6em 0}
+.drawbar .dcount{font:700 .9em var(--f-head);letter-spacing:.12em;opacity:.85}
+.drawbar .dname{font:700 1.6em var(--f-head);flex:1;min-width:12em}
+.drawbar .dsub{font-size:.95em;opacity:.9}
+.drawbar .btn{margin-left:auto;background:#fff;color:var(--court);border-color:#fff}
+.brw{display:contents}
+@media (max-width:700px){
+  header.top{position:static;padding-top:8px}
+  .brand h1{font-size:25px}.logo img{height:30px}
+  .brand{gap:6px 10px}
+  main,main>*,.card,.bz{min-width:0;max-width:100%}
+  .scroll{max-width:100%;-webkit-overflow-scrolling:touch}
+  .card{padding:12px}
+  h2{font-size:22px}
+  nav.tabs{position:sticky;top:0;z-index:6;background:var(--bg);margin-left:-16px;margin-right:-16px;padding:0 8px}
+  nav.tabs button{padding:12px 14px;font-size:17px}
+  input,select,textarea{font-size:16px}
+  .btn{padding:9px 13px}.btn.sm{padding:6px 10px}
+  .wide .bz{padding:0}
+  .pgrid{grid-template-columns:1fr;gap:12px}
+  .pc{font-size:14px}
+  .pc .match input.sc,.match input.sc{font-size:16px}
+  .stp{width:34px;height:34px}
+  .bz{font-size:14px}
+  .br{flex-direction:column;gap:18px;min-width:0!important}
+  .brw{display:block;order:var(--o)}
+  .brc{min-width:0;flex:none}
+  .unit::before,.unit::after,.pairbox::after{display:none!important}
+  .unit{padding:4px 0}
+  .cls{display:block}.cs{margin-bottom:12px}
+  .csg{grid-template-columns:1fr!important}
+  .drawbar .dname{font-size:1.2em}
+  #drawcard{width:88vw}
+  .row>*{flex:1 1 100%}
+  .dhc .mv{height:28px;padding:0 8px;font-size:12px}
+  #plantbl{display:block}#plantbl thead{display:none}#plantbl tbody{display:block}
+  #plantbl tr{display:grid;grid-template-columns:1fr 1fr;gap:6px 12px;padding:10px 2px;border-bottom:1px solid var(--line)}
+  #plantbl tr.pairsep{border-top:3px solid var(--line)}
+  #plantbl td{display:flex;flex-direction:column;border:0!important;padding:0!important;min-width:0}
+  #plantbl td[data-l]::before{content:attr(data-l);font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--ink2);margin-bottom:2px}
+  #plantbl td.dhc{grid-column:1/-1;flex-direction:row;align-items:center;gap:6px;order:-2;width:auto}
+  #plantbl td.mtitle{grid-column:1/-1;font-weight:700;font-size:17px;order:-1}
+  #plantbl td[data-l="Paire A"],#plantbl td[data-l="Paire B"],#plantbl td[data-l="Score"]{grid-column:1/-1}
+  #plantbl input{width:100%!important}
+  #plantbl td[data-l="Score"]{flex-direction:row;flex-wrap:wrap;align-items:center;gap:6px}
+  #plantbl td[data-l="Score"]::before{flex-basis:100%}
+  #plantbl td[data-l="Score"] input{width:64px!important}
+  #plantbl td[data-l="Durée"]:has(.dur:empty){display:none}
+  .tools .btn.sm{font-size:12px;padding:5px 8px}
+}
+.wide .wrap{max-width:none}
+.wide main{gap:12px;padding-top:12px}
+.pgrid{gap:.7vw}
+body.ro .logo img{height:clamp(34px,4vw,60px)}
+body.ro .logo{padding:4px 10px;border-radius:10px}
+body.ro .brand{justify-content:center;text-align:center}
+body.ro .brand>div:first-child{flex:1 1 100%}
+body.ro .brand h1{display:block;position:relative;text-align:center;font-size:clamp(30px,4.2vw,60px);line-height:1.08}
+body.ro .brand h1 .logo{position:absolute;left:0;top:0}
+body.ro #ttl{display:block;padding:0 calc(9vw + 40px)}
+@media (max-width:700px){body.ro .brand h1 .logo{position:static;display:flex;width:max-content;margin-bottom:8px}body.ro #ttl{padding:0}}
+body.ro header.top{position:static}
+body.ro #subttl{text-align:center;font-size:1.05em}
+body.ro .tools{width:100%;justify-content:center}
+body.ro nav.tabs{justify-content:center}
+body.ro .tools .btn:not([data-act=home]),body.ro .tools label,body.ro .tools input{display:none!important}
+body.ro #view [data-act]:not([data-act=home-tab]):not([data-act=t-open]):not([data-act=ko-filter]):not(.pr),body.ro #view [data-step],body.ro #view .dh,body.ro #view .notice button{display:none!important}
+body.ro #view label{pointer-events:none}
+body.ro #view input,body.ro #view select,body.ro #view textarea,body.ro #view [data-drag],body.ro #view [data-pdrag]{pointer-events:none}
+.podium tr.medal td{font-weight:600}
+.podium tr.m1 td{background:rgba(212,175,55,.28)}.podium tr.m2 td{background:rgba(160,166,176,.30)}.podium tr.m3 td{background:rgba(176,108,52,.26)}
+.podium tr.m1 td.pl{background:rgba(212,175,55,.75);color:#4a3600}.podium tr.m2 td.pl{background:rgba(160,166,176,.8);color:#2c3036}.podium tr.m3 td.pl{background:rgba(176,108,52,.75);color:#fff}
+#qr-bg{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:100;display:flex;align-items:center;justify-content:center}
+#qr-box{background:#fff;border-radius:12px;padding:18px;width:min(380px,92vw);display:grid;gap:12px;justify-items:center;text-align:center}
+#qr-box input{width:100%}.qr-row{display:flex;gap:8px;flex-wrap:wrap;justify-content:center}
+
+.homebar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:14px;box-shadow:inset 0 -2px 0 var(--line)}
+.homeact{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+.homeqr{position:fixed;left:16px;bottom:16px;width:128px;background:#fff;border:1px solid var(--line);border-radius:8px;padding:6px;z-index:20;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.homeqr[data-act]{cursor:pointer}.homeqr svg{display:block;width:100%;height:auto}
+@media (max-width:700px){.homeqr{position:static;margin:24px auto 0 0}}
+</style>
+
+<div class="wrap">
+<header class="top">
+  <div class="brand">
+    <div><h1><span class="logo"><img alt="Bad Pad Padel Club" src="data:image/png;base64,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"></span><span id="ttl">Tableaux Padel</span></h1><div class="sub" id="subttl"></div></div>
+    <div class="tools">
+      <button class="btn primary" data-act="home" id="homebtn" style="order:-1;font-size:1.05em;padding:10px 18px">← Les tournois</button>
+    </div>
+  </div>
+  <nav class="tabs" role="tablist" id="tabs"></nav>
+</header>
+<main id="view"></main>
+<p class="status" id="status" style="margin-top:24px"></p>
+</div>
+
+<script src="shim.js"></script><script>
+(function(){
+'use strict';
+var KEY='tableaux-padel-v1';
+var TABS=[['accueil','Configuration'],['inscriptions','Inscriptions'],['poules','Poules'],['planning','Planning'],['pronos','Mes Pronos'],['tableau','Tableau final'],['classement','Classement'],['classif','Matchs de classement']];
+var LEVELS=['P25','P50','P100','P250','P500'];
+var GENDERS=['Hommes','Dames','Mixte'];
+var FORMATS={D2:'1 set à 9 jeux, point décisif, jeu décisif à 7 points à 8/8.'};
+
+/* Barèmes FFT 2026/2027 (source indicative : padeltournoimanager.fr, d'après le chapitre II du règlement FFT). */
+var COLS=['4-8','9-12','13-16','17-20','21-24','25-28','29+'];
+var PTS={
+ P25:[[25,20,15,9,6,4,2,1],[25,20,16,14,10,8,7,6,4,3,2,1],[25,20,17,15,14,13,12,11,8,7,6,5,4,3,2,1],[25,22,19,17,15,13,12,11,9,8,7,6,5,4,3,2,1,1,1,1],[25,22,19,17,15,13,12,11,9,8,7,6,5,5,5,5,4,4,3,3,2,2,1,1],[25,22,19,17,15,13,12,11,8,7,6,5,4,4,4,4,3,3,3,3,2,2,2,2,1,1,1,1],[25,22,19,17,15,14,13,12,10,9,8,7,6,5,4,3,2,2,2,2,2,2,2,1,1,1,1,1,1,1,1,1]],
+ P50:[[50,40,30,20,13,5,3,1],[50,40,33,28,20,15,10,5,3,2,1,1],[50,40,35,30,25,23,20,15,13,11,9,8,5,3,2,1],[50,43,38,35,30,28,25,23,18,15,13,12,10,9,8,6,5,3,2,1],[50,43,38,35,30,28,25,23,19,18,17,16,15,14,13,12,10,9,8,6,5,3,2,1],[50,43,38,35,30,28,25,23,19,18,17,16,15,14,13,12,10,9,8,7,6,5,4,3,2,2,1,1],[50,43,38,35,30,29,28,27,23,22,21,20,19,18,17,16,14,13,13,12,12,11,11,10,9,8,7,6,5,4,3,2]],
+ P100:[[100,80,60,40,25,10,5,1],[100,80,65,55,40,30,20,10,5,3,2,1],[100,80,70,60,50,45,40,30,25,21,18,15,10,5,3,1],[100,85,75,70,60,55,50,45,35,30,25,23,20,18,15,12,10,5,3,1],[100,85,75,70,60,55,50,45,38,36,34,32,30,28,26,24,20,18,15,12,10,5,3,1],[100,85,75,70,60,55,50,45,38,36,34,32,30,28,26,24,20,18,16,14,12,10,8,6,4,3,2,1],[100,85,75,70,60,58,56,54,45,43,41,39,37,35,33,31,27,26,25,24,23,22,21,20,17,15,13,11,9,7,5,3]],
+ P250:[[250,200,150,100,63,25,13,3],[250,200,165,140,100,75,50,25,13,8,5,3],[250,200,175,150,125,115,100,75,63,53,45,38,25,13,8,3],[250,213,188,175,150,138,125,113,88,75,63,58,50,45,38,30,25,13,8,3],[250,213,188,175,150,138,125,113,95,90,85,80,75,70,65,60,50,45,38,30,25,13,8,3],[250,213,188,175,150,138,125,113,95,90,85,80,75,70,65,60,50,45,40,35,30,25,20,15,10,8,5,3],[250,213,188,175,150,145,140,135,113,108,103,98,93,88,83,78,68,65,63,60,58,55,53,50,43,38,33,28,23,18,13,8]],
+ P500:{H:[500,425,375,350,300,290,280,270,225,215,205,195,185,175,165,155,135,130,125,120,115,110,105,100,85,75,65,55,45,35,25,15],F:[500,425,375,350,300,275,250,225,190,180,170,160,150,140,130,120,100,90,80,70,60,50,40,30,20]},
+ P1000:{H:[1000,850,750,700,600,580,560,540,450,430,410,390,370,350,330,310,270,260,250,240,230,220,210,200,170,150,130,110,90,70,50,30],F:[1000,850,750,700,600,550,500,450,380,360,340,320,300,280,260,240,200,180,160,140,120,100,80,60,40]},
+ P2000:{H:[2000,1700,1500,1400,1200,1160,1120,1080,900,860,820,780,740,700,660,620,540,520,500,480,460,440,420,400,340,300,260,220,180,140,100,60]},
+ P3000:{H:[3000,2550,2250,2100,1800,1740,1680,1620,1350,1290,1230,1170,1110,1050,990,930,810,780,750,720,690,660,630,600,510,450,390,330,270,210,150,90]}
+};
+function colIndex(n){return n<=8?0:n<=12?1:n<=16?2:n<=20?3:n<=24?4:n<=28?5:6}
+function pointsTable(level,gender,n){
+  var t=PTS[level]||PTS.P100;
+  if(Array.isArray(t)) return {arr:t[colIndex(n)],flat:false,col:COLS[colIndex(n)]};
+  var a=(gender==='Dames'&&t.F)?t.F:t.H; return {arr:a,flat:true,col:null};
+}
+
+/* ---------- état ---------- */
+var confirmKo=false;
+var DEFTIMES={'P2.6':'20:15'};
+var koFilter=null,homeQr='',homeTabUser=null;
+var QR=(function(){
+  var EC=[null,[10,1,16,0,0],[16,1,28,0,0],[26,1,44,0,0],[18,2,32,0,0],[24,2,43,0,0],[16,4,27,0,0],[18,4,31,0,0],[22,2,38,2,39],[22,3,36,2,37],[26,4,43,1,44]];
+  var ALIGN=[null,[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50]];
+  var EXP=new Array(512),LOG=new Array(256);
+  (function(){var x=1;for(var i=0;i<255;i++){EXP[i]=x;LOG[x]=i;x<<=1;if(x&256)x^=0x11d}for(i=255;i<512;i++)EXP[i]=EXP[i-255]})();
+  function mul(a,b){return a&&b?EXP[LOG[a]+LOG[b]]:0}
+  function rsGen(d){var g=[1];for(var i=0;i<d;i++){var n=[];for(var k=0;k<=g.length;k++)n.push(0);for(var j=0;j<g.length;j++){n[j]^=g[j];n[j+1]^=mul(g[j],EXP[i])}g=n}return g}
+  function rsRem(data,d){var g=rsGen(d),r=[];for(var i=0;i<d;i++)r.push(0);
+    data.forEach(function(b){var f=b^r.shift();r.push(0);for(var i=0;i<d;i++)r[i]^=mul(g[i+1],f)});return r}
+  function bit(x,i){return ((x>>>i)&1)!==0}
+  function make(text){
+    var bytes=unescape(encodeURIComponent(text)).split('').map(function(c){return c.charCodeAt(0)});
+    var v,e,cap;
+    for(v=1;v<=10;v++){e=EC[v];cap=e[1]*e[2]+e[3]*e[4];if(4+(v<10?8:16)+8*bytes.length<=cap*8)break}
+    if(v>10)throw new Error('URL trop longue');
+    var bits=[];function put(val,len){for(var i=len-1;i>=0;i--)bits.push((val>>>i)&1)}
+    put(4,4);put(bytes.length,v<10?8:16);bytes.forEach(function(b){put(b,8)});
+    put(0,Math.min(4,cap*8-bits.length));while(bits.length%8)bits.push(0);
+    var data=[];for(var i=0;i<bits.length;i+=8){var b=0;for(var j=0;j<8;j++)b=b*2+bits[i+j];data.push(b)}
+    for(var pad=0xEC;data.length<cap;pad^=0xEC^0x11)data.push(pad);
+    var blocks=[],pos=0,k;
+    for(k=0;k<e[1];k++){blocks.push(data.slice(pos,pos+e[2]));pos+=e[2]}
+    for(k=0;k<e[3];k++){blocks.push(data.slice(pos,pos+e[4]));pos+=e[4]}
+    var ecs=blocks.map(function(bl){return rsRem(bl,e[0])});
+    var all=[],maxd=Math.max(e[2],e[4]);
+    for(i=0;i<maxd;i++)blocks.forEach(function(bl){if(i<bl.length)all.push(bl[i])});
+    for(i=0;i<e[0];i++)ecs.forEach(function(ec){all.push(ec[i])});
+    var size=17+4*v,m=[],fn=[];
+    for(i=0;i<size;i++){m.push(new Array(size).fill(false));fn.push(new Array(size).fill(false))}
+    function setFn(x,y,val){m[y][x]=val;fn[y][x]=true}
+    for(i=0;i<size;i++){setFn(6,i,i%2===0);setFn(i,6,i%2===0)}
+    function finder(cx,cy){for(var dy=-4;dy<=4;dy++)for(var dx=-4;dx<=4;dx++){var d=Math.max(Math.abs(dx),Math.abs(dy)),x=cx+dx,y=cy+dy;if(x>=0&&x<size&&y>=0&&y<size)setFn(x,y,d!==2&&d!==4)}}
+    finder(3,3);finder(size-4,3);finder(3,size-4);
+    var al=ALIGN[v],n=al.length;
+    for(i=0;i<n;i++)for(var j=0;j<n;j++){if((i===0&&j===0)||(i===0&&j===n-1)||(i===n-1&&j===0))continue;
+      for(var dy=-2;dy<=2;dy++)for(var dx=-2;dx<=2;dx++)setFn(al[i]+dx,al[j]+dy,Math.max(Math.abs(dx),Math.abs(dy))!==1)}
+    function fmt(mask){
+      var d=mask,r=d;for(var i=0;i<10;i++)r=(r<<1)^((r>>>9)*0x537);var bs=((d<<10)|r)^0x5412;
+      for(i=0;i<=5;i++)setFn(8,i,bit(bs,i));setFn(8,7,bit(bs,6));setFn(8,8,bit(bs,7));setFn(7,8,bit(bs,8));
+      for(i=9;i<15;i++)setFn(14-i,8,bit(bs,i));
+      for(i=0;i<8;i++)setFn(size-1-i,8,bit(bs,i));
+      for(i=8;i<15;i++)setFn(8,size-15+i,bit(bs,i));
+      setFn(8,size-8,true)}
+    fmt(0);
+    if(v>=7){var r=v;for(i=0;i<12;i++)r=(r<<1)^((r>>>11)*0x1F25);var vb=(v<<12)|r;
+      for(i=0;i<18;i++){var c=bit(vb,i),a=size-11+i%3,b2=Math.floor(i/3);setFn(a,b2,c);setFn(b2,a,c)}}
+    var idx=0;
+    for(var right=size-1;right>=1;right-=2){if(right===6)right=5;
+      for(var vert=0;vert<size;vert++)for(j=0;j<2;j++){var x=right-j,up=((right+1)&2)===0,y=up?size-1-vert:vert;
+        if(!fn[y][x]&&idx<all.length*8){m[y][x]=bit(all[idx>>>3],7-(idx&7));idx++}}}
+    function applyMask(mask){for(var y=0;y<size;y++)for(var x=0;x<size;x++){if(fn[y][x])continue;var inv;
+      switch(mask){case 0:inv=(x+y)%2===0;break;case 1:inv=y%2===0;break;case 2:inv=x%3===0;break;case 3:inv=(x+y)%3===0;break;
+        case 4:inv=(Math.floor(x/3)+Math.floor(y/2))%2===0;break;case 5:inv=x*y%2+x*y%3===0;break;
+        case 6:inv=(x*y%2+x*y%3)%2===0;break;default:inv=((x+y)%2+x*y%3)%2===0}
+      if(inv)m[y][x]=!m[y][x]}}
+    function penalty(){
+      var p=0,y,x,run,last,dark=0;
+      function line(get){run=1;last=get(0);for(var t=1;t<size;t++){var c=get(t);if(c===last)run++;else{if(run>=5)p+=3+run-5;run=1;last=c}}if(run>=5)p+=3+run-5}
+      for(y=0;y<size;y++)(function(yy){line(function(t){return m[yy][t]})})(y);
+      for(x=0;x<size;x++)(function(xx){line(function(t){return m[t][xx]})})(x);
+      for(y=0;y<size-1;y++)for(x=0;x<size-1;x++){var c=m[y][x];if(c===m[y][x+1]&&c===m[y+1][x]&&c===m[y+1][x+1])p+=3}
+      var pa=[1,0,1,1,1,0,1,0,0,0,0],pb=[0,0,0,0,1,0,1,1,1,0,1];
+      function pat(get){for(var s=0;s+11<=size;s++){var a=true,b=true;for(var t=0;t<11;t++){var cv=get(s+t)?1:0;if(cv!==pa[t])a=false;if(cv!==pb[t])b=false}if(a||b)p+=40}}
+      for(y=0;y<size;y++)(function(yy){pat(function(t){return m[yy][t]})})(y);
+      for(x=0;x<size;x++)(function(xx){pat(function(t){return m[t][xx]})})(x);
+      for(y=0;y<size;y++)for(x=0;x<size;x++)if(m[y][x])dark++;
+      var tot=size*size;p+=(Math.ceil(Math.abs(dark*20-tot*10)/tot)-1)*10;return p}
+    var best=0,bp=1e9;
+    for(var mk=0;mk<8;mk++){applyMask(mk);fmt(mk);var pen=penalty();if(pen<bp){bp=pen;best=mk}applyMask(mk)}
+    applyMask(best);fmt(best);
+    return m;
+  }
+  return {make:make};
+})();
+
+function siteUrl(){
+  if(window.padelApi){var u=location.origin+location.pathname;return /^https?:\/\//.test(u)?u:''}
+  var d='';try{d=localStorage.getItem('padel-qr-url')||''}catch(e){}
+  return /^https?:\/\//.test(d)?d:'';
+}
+function showQr(){
+  var old=document.getElementById('qr-bg');if(old)old.remove();
+  var def='';try{def=localStorage.getItem('padel-qr-url')||''}catch(e){}
+  if(!def||window.padelApi){var sd=siteUrl();if(sd)def=sd}
+  var bg=document.createElement('div');bg.id='qr-bg';
+  bg.innerHTML='<div id="qr-box"><b>QR code vers la page d\'accueil</b><div id="qr-img"></div><input id="qr-url" type="url" placeholder="https://ton-site.netlify.app/" value="'+esc(def)+'"><div class="qr-row"><button class="btn primary" id="qr-dl">Télécharger (PNG)</button><button class="btn" id="qr-pr">Imprimer</button><button class="btn" id="qr-x">Fermer</button></div></div>';
+  document.body.appendChild(bg);
+  var inp=bg.querySelector('#qr-url'),box=bg.querySelector('#qr-img'),M=null;
+  function draw(){
+    var u=inp.value.trim();M=null;
+    if(!u){box.innerHTML='<div class="sub">Colle l\'adresse de ton site.</div>';return}
+    try{M=QR.make(u)}catch(e){box.innerHTML='<div class="sub">Adresse trop longue.</div>';return}
+    var n=M.length,p='';for(var y=0;y<n;y++)for(var x=0;x<n;x++)if(M[y][x])p+='M'+(x+4)+' '+(y+4)+'h1v1h-1z';
+    box.innerHTML='<svg viewBox="0 0 '+(n+8)+' '+(n+8)+'" shape-rendering="crispEdges" style="width:min(60vw,300px);height:auto;background:#fff"><path d="'+p+'" fill="#000"/></svg>';
+    try{localStorage.setItem('padel-qr-url',u)}catch(e){}
+  }
+  inp.oninput=draw;draw();
+  bg.querySelector('#qr-x').onclick=function(){bg.remove()};
+  bg.onclick=function(e){if(e.target===bg)bg.remove()};
+  function canvas(){
+    var n=M.length,sc=Math.floor(1000/(n+8)),c=document.createElement('canvas');c.width=c.height=sc*(n+8);
+    var g=c.getContext('2d');g.fillStyle='#fff';g.fillRect(0,0,c.width,c.height);g.fillStyle='#000';
+    for(var y=0;y<n;y++)for(var x=0;x<n;x++)if(M[y][x])g.fillRect((x+4)*sc,(y+4)*sc,sc,sc);return c}
+  bg.querySelector('#qr-dl').onclick=function(){if(!M)return;canvas().toBlob(function(b){saveFile('qr-tournois.png',b)})};
+  bg.querySelector('#qr-pr').onclick=function(){if(!M)return;var w=window.open('','_blank');if(!w)return;
+    w.document.write('<title>QR code</title><body style="margin:0;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;font:20px system-ui"><img src="'+canvas().toDataURL('image/png')+'" style="width:70vmin"><div style="margin-top:10px">'+esc(inp.value.trim())+'</div></body>');w.document.close();setTimeout(function(){w.print()},300)};
+}
+
+var S=null, tab='accueil', selPair=null, importMsg='', confirmNew=false, confirmReset=false, flash='', drawAnim=null, drawTimer=null, drawTick=null;
+var uid=1; function nid(){return 'p'+(Date.now().toString(36))+(uid++)}
+function blankPlayer(){return {nom:'',prenom:'',naissance:'',licence:'',club:'',classement:'',email:'',tel:''}}
+function blankPair(){return {id:nid(),a:blankPlayer(),b:blankPlayer()}}
+function freshMeta(){return {name:'',date:'',level:'P100',gender:'Hommes',fmtCode:'D2',format:FORMATS.D2,start:'09:30',dur:45,courts:5,pause:0,pauseV:2,teams:12,poules:4,seeds:4,qualified:8,drawMode:'serpentin',classMode:'rank',rankV:1}}
+function emptyState(n){var s={meta:freshMeta(),pairs:[],groups:null,scores:{},times:{},starts:{},ends:{},terrains:{},sets:{},sig:'',customPoints:null,drawSeed:1,demo:false};s.meta.teams=n;for(var i=0;i<n;i++)s.pairs.push(blankPair());return s}
+function example(){
+  var data=[[{"nom": "GUIMARAES SILVA", "prenom": "Marc anthony", "naissance": "1995-02-13", "licence": "4668865", "club": "ACE PADEL", "classement": "12384", "email": "marcanthonyguimaraes@gmail.com", "tel": "+33629393926"}, {"nom": "GHILARDI", "prenom": "Guillaume", "naissance": "1997-01-15", "licence": "7952530", "club": "ACE PADEL", "classement": "8270", "email": "guillaume.cgh@gmail.com", "tel": "6170912020"}], [{"nom": "DAROCHA", "prenom": "Fabien", "naissance": "1993-12-12", "licence": "2722214", "club": "ACE PADEL", "classement": "6264", "email": "fabiendarocha@gmail.com", "tel": "+33620081503"}, {"nom": "ALBAYRAK", "prenom": "Kadir", "naissance": "1990-06-12", "licence": "3588438", "club": "ACE PADEL", "classement": "14632", "email": "k.albayrak@hotmail.fr", "tel": "+33659637765"}], [{"nom": "MARIE", "prenom": "Christophe", "naissance": "1983-07-08", "licence": "4448512", "club": "ACE PADEL", "classement": "11689", "email": "kris_358@hotmail.fr", "tel": "7817121660"}, {"nom": "CRAVEIRO", "prenom": "Matisse", "naissance": "2004-06-27", "licence": "1923664", "club": "ACE PADEL", "classement": "11175", "email": "matissecraveiro@gmail.com", "tel": "6959607010"}], [{"nom": "ALMEIDA LOURENCO", "prenom": "Hugo", "naissance": "1990-08-04", "licence": "4005875", "club": "PARTOUT - B14", "classement": "17241", "email": "hugo.lourenco@live.fr", "tel": "+33633884652"}, {"nom": "LECAT", "prenom": "Bastien", "naissance": "1991-09-08", "licence": "4044526", "club": "PARTOUT - B14", "classement": "15387", "email": "blecatpro@gmail.com", "tel": "+33611847518"}], [{"nom": "KELLER", "prenom": "Marc", "naissance": "1997-07-28", "licence": "4403593", "club": "BADPAD", "classement": "22981", "email": "keller2bmarc@gmail.com", "tel": "+33761212167"}, {"nom": "FAUX", "prenom": "Mathieu", "naissance": "1993-11-20", "licence": "4740333", "club": "BADPAD", "classement": "14039", "email": "mathieu.faux913@gmail.com", "tel": "+33625796882"}], [{"nom": "CARISTAN", "prenom": "Dylan", "naissance": "1996-07-30", "licence": "5185390", "club": "C.T. VILLEJUST", "classement": "18160", "email": "dylan.caristan@gmail.com", "tel": "6650604600"}, {"nom": "LANCRE", "prenom": "Baptiste", "naissance": "1998-02-17", "licence": "4723418", "club": "PARTOUT - B14", "classement": "25463", "email": "baptistelancre@hotmail.fr", "tel": "+33615416425"}], [{"nom": "COUENNAUX", "prenom": "Alexandre", "naissance": "1987-05-22", "licence": "2816129", "club": "PARTOUT - B14", "classement": "7379", "email": "kueno@hotmail.fr", "tel": "6702403380"}, {"nom": "CHEKHAB", "prenom": "Yassine", "naissance": "1991-01-09", "licence": "3845329", "club": "4PADEL EPINAY", "classement": "39906", "email": "yassinechekhab9@gmail.com", "tel": "6270205790"}], [{"nom": "JEANNEAU", "prenom": "Théo", "naissance": "2006-08-05", "licence": "7353113", "club": "TENNIS CLUB WISSOUS 91", "classement": "43174", "email": "theo.jeanneau91320@gmail.com", "tel": "6407636090"}, {"nom": "NDILU ANTONIO", "prenom": "Exaucé", "naissance": "1996-01-31", "licence": "2062536", "club": "TENNIS CLUB WISSOUS 91", "classement": "7500", "email": "exau.antonio96@gmail.com", "tel": "6340863550"}], [{"nom": "CHEKHAB", "prenom": "Mehdi", "naissance": "1991-01-09", "licence": "4802152", "club": "4PADEL CRETEIL", "classement": "35831", "email": "chekhabmehdi09@gmail.com", "tel": "+33620844847"}, {"nom": "DUMESNIL", "prenom": "Guillaume", "naissance": "1994-05-30", "licence": "4206657", "club": "STADIUM THIAIS", "classement": "17310", "email": "guillaumedumesnil07@gmail.com", "tel": "+33666175579"}], [{"nom": "ROUSSEL", "prenom": "Martin", "naissance": "1998-05-11", "licence": "7933722", "club": "ASCE AEROPORT DE PARIS", "classement": "18691", "email": "rousselmartin@live.fr", "tel": "6256213820"}, {"nom": "ROUSSEL", "prenom": "Nathan", "naissance": "2001-06-08", "licence": "5136050", "club": "ASCE AEROPORT DE PARIS", "classement": "64996", "email": "rousselnathan@live.fr", "tel": "6513671030"}], [{"nom": "BOUSKRA", "prenom": "Samir", "naissance": "1980-02-18", "licence": "4814278", "club": "SENART PADEL", "classement": "30674", "email": "samir.bouskra@gmail.com", "tel": "+33622175048"}, {"nom": "MAMEDOV", "prenom": "Sacha", "naissance": "1995-07-25", "licence": "9943687", "club": "SENART PADEL", "classement": "54346", "email": "sachamamedov@hotmail.fr", "tel": "7811279090"}], [{"nom": "SEBAI", "prenom": "Nabil", "naissance": "1986-12-17", "licence": "1228766", "club": "PADEL HORIZON", "classement": "48435", "email": "nabil.islamondial@gmail.com", "tel": "+33766468000"}, {"nom": "JACQUOT", "prenom": "Robin", "naissance": "2006-02-21", "licence": "6952662", "club": "TENNIS CLUB WISSOUS 91", "classement": "59628", "email": "robinjacquot5506@gmail.com", "tel": "7673175020"}]];
+  var s=emptyState(12);
+  s.pairs=data.map(function(d){var p=blankPair();p.a=d[0];p.b=d[1];return p});
+  s.meta.name='P100'; s.meta.date='2026-11-11';
+  return s;
+}
+function fixState(){
+  S.starts=S.starts||{};S.ends=S.ends||{};S.terrains=S.terrains||{};S.times=S.times||{};S.order=S.order||null;S.bracketSeed=S.bracketSeed||1;if(S.bracketDrawn===undefined)S.bracketDrawn=false;S.scores=S.scores||{};S.sets=S.sets||{};S.sig=S.sig||'';
+  if(S.customPoints===undefined)S.customPoints=null; if(!S.drawSeed)S.drawSeed=1;
+  var d=freshMeta(); S.meta=S.meta||{};
+  if(S.meta.poules===undefined){ /* ancien format */
+    S.meta.teams=S.pairs.length; S.meta.poules=4; S.meta.seeds=4; S.meta.qualified=8; S.meta.gender='Hommes';
+    S.meta.classMode=S.meta.mode912==='play'?'play':(S.meta.mode912==='rank'?'rank':'auto'); delete S.meta.mode912;
+    Object.keys(S.scores).forEach(function(k){if(!/^P\d+\.\d+$/.test(k)){delete S.scores[k];delete S.starts[k];delete S.ends[k];delete S.times[k]}});
+  }
+  Object.keys(d).forEach(function(k){if(S.meta[k]===undefined)S.meta[k]=d[k]});
+  if(S.meta.gender==='Femmes')S.meta.gender='Dames';
+  if(LEVELS.indexOf(S.meta.level)<0)S.meta.level='P100';
+  S.meta.fmtCode='D2';S.meta.format=FORMATS.D2;
+  if(S.meta.pause===undefined){S.meta.pause=0;S.meta.courts=5}
+  if(S.meta.pauseV!==2){S.meta.pause=0;S.meta.pauseV=2}
+  if(S.orderV!==2){S.order=null;S.orderV=2}
+  if(S.meta.rankV!==1){S.meta.classMode='rank';S.meta.rankV=1}
+}
+var DEFAULT_JSON="{\"meta\":{\"name\":\"P25 du 14/11/2026\",\"date\":\"2026-11-14\",\"level\":\"P25\",\"format\":\"1 set \u00e0 9 jeux, point d\u00e9cisif, jeu d\u00e9cisif \u00e0 7 points \u00e0 8/8.\",\"start\":\"18h00\",\"dur\":45,\"courts\":5,\"teams\":16,\"poules\":4,\"seeds\":0,\"qualified\":8,\"gender\":\"Hommes\",\"classMode\":\"auto\",\"fmtCode\":\"D2\",\"drawMode\":\"serpentin\",\"pause\":0,\"pauseV\":2,\"rankV\":1},\"pairs\":[{\"id\":\"pmwdneljy1\",\"a\":{\"nom\":\"CARLESIMO\",\"prenom\":\"Flavio\",\"naissance\":\"\",\"licence\":\"639904\",\"club\":\"BADPAD\",\"classement\":\"51784\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"EINSARGUEIX\",\"prenom\":\"Julien\",\"naissance\":\"\",\"licence\":\"3304544\",\"club\":\"BADPAD\",\"classement\":\"65934\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy2\",\"a\":{\"nom\":\"HOUZIEL\",\"prenom\":\"Mickael\",\"naissance\":\"\",\"licence\":\"1065193\",\"club\":\"BADPAD\",\"classement\":\"71722\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"LABENI\",\"prenom\":\"Rayan\",\"naissance\":\"\",\"licence\":\"4836363\",\"club\":\"PARTOUT - B14\",\"classement\":\"49883\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy3\",\"a\":{\"nom\":\"LACOSTE\",\"prenom\":\"Aur\u00e9lien\",\"naissance\":\"\",\"licence\":\"9008105\",\"club\":\"PADEL CLUB ALDEA\",\"classement\":\"72270\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"CAILLOT\",\"prenom\":\"Lilian\",\"naissance\":\"\",\"licence\":\"9008066\",\"club\":\"PADEL CLUB ALDEA\",\"classement\":\"72270\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy4\",\"a\":{\"nom\":\"GIFFAUT\",\"prenom\":\"Sullyvan\",\"naissance\":\"\",\"licence\":\"1103799\",\"club\":\"4PADEL CRETEIL\",\"classement\":\"35000\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"DEFREMONT\",\"prenom\":\"Damien\",\"naissance\":\"\",\"licence\":\"3935169\",\"club\":\"PARTOUT - B14\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy5\",\"a\":{\"nom\":\"FAGE\",\"prenom\":\"Fr\u00e9d\u00e9ric\",\"naissance\":\"\",\"licence\":\"4342127\",\"club\":\"PLESSIS ROBINSON (TC)\",\"classement\":\"37834\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"SERRE\",\"prenom\":\"Yann\",\"naissance\":\"\",\"licence\":\"3778762\",\"club\":\"T.C. IGNY\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy6\",\"a\":{\"nom\":\"NELET SIM\",\"prenom\":\"Aniki\",\"naissance\":\"\",\"licence\":\"9085806\",\"club\":\"PADEL COQUELICOTS\",\"classement\":\"67194\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"BENOIT\",\"prenom\":\"Baptiste\",\"naissance\":\"\",\"licence\":\"4630957\",\"club\":\"C.O. SAVIGNY TENNIS\",\"classement\":\"112056\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy7\",\"a\":{\"nom\":\"PEREIRA\",\"prenom\":\"Victor\",\"naissance\":\"\",\"licence\":\"4719254\",\"club\":\"CARRE PADEL\",\"classement\":\"67194\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"YOAN\",\"prenom\":\"Afonso\",\"naissance\":\"\",\"licence\":\"9371017\",\"club\":\"BADPAD\",\"classement\":\"121794\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy8\",\"a\":{\"nom\":\"DRASKOVIC\",\"prenom\":\"Tomas\",\"naissance\":\"\",\"licence\":\"3376735\",\"club\":\"BONDOUFLE A.C.\",\"classement\":\"87397\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"DA EIRA\",\"prenom\":\"Jeremy\",\"naissance\":\"\",\"licence\":\"2562549\",\"club\":\"PADEL CLUB ALDEA\",\"classement\":\"109514\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy9\",\"a\":{\"nom\":\"BERTIER\",\"prenom\":\"Mathys\",\"naissance\":\"\",\"licence\":\"4700188\",\"club\":\"BADPAD\",\"classement\":\"98708\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"GERMAIN\",\"prenom\":\"Seven\",\"naissance\":\"\",\"licence\":\"9940021\",\"club\":\"BADPAD\",\"classement\":\"109514\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy10\",\"a\":{\"nom\":\"BEN GUIRAT\",\"prenom\":\"Yahya\",\"naissance\":\"\",\"licence\":\"9008142\",\"club\":\"PADEL CLUB ALDEA\",\"classement\":\"112056\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"CAILLOT\",\"prenom\":\"Jordan\",\"naissance\":\"\",\"licence\":\"9008069\",\"club\":\"PADEL CLUB ALDEA\",\"classement\":\"114416\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy11\",\"a\":{\"nom\":\"SERRE\",\"prenom\":\"Cl\u00e9ment\",\"naissance\":\"\",\"licence\":\"7095456\",\"club\":\"T.C.M. CHILLY-MAZARIN\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"DALESME\",\"prenom\":\"Leo\",\"naissance\":\"\",\"licence\":\"1745954\",\"club\":\"C.O. SAVIGNY TENNIS\",\"classement\":\"104322\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy12\",\"a\":{\"nom\":\"LACHENY\",\"prenom\":\"Jeremy\",\"naissance\":\"\",\"licence\":\"9033805\",\"club\":\"ACE PADEL\",\"classement\":\"130078\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"CHAUVIN\",\"prenom\":\"Florent\",\"naissance\":\"\",\"licence\":\"9168367\",\"club\":\"ACE PADEL\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy16\",\"a\":{\"nom\":\"LOPES MARTINS\",\"prenom\":\"David\",\"naissance\":\"\",\"licence\":\"9125803\",\"club\":\"BADPAD\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"BARRAK\",\"prenom\":\"Salah\",\"naissance\":\"\",\"licence\":\"141054\",\"club\":\"BADPAD\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy13\",\"a\":{\"nom\":\"LEON\",\"prenom\":\"Mathieu\",\"naissance\":\"\",\"licence\":\"9219573\",\"club\":\"PARTOUT - B14\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"MOULIN\",\"prenom\":\"Cl\u00e9ment\",\"naissance\":\"\",\"licence\":\"9026347\",\"club\":\"PARTOUT - B14\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy14\",\"a\":{\"nom\":\"VEROUIL\",\"prenom\":\"Lucas\",\"naissance\":\"\",\"licence\":\"9384982\",\"club\":\"BADPAD\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"MASSAS\",\"prenom\":\"Toni\",\"naissance\":\"\",\"licence\":\"2689363\",\"club\":\"BADPAD\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"}},{\"id\":\"pmwdneljy15\",\"a\":{\"nom\":\"MARIX\",\"prenom\":\"Enzo\",\"naissance\":\"\",\"licence\":\"9385003\",\"club\":\"BADPAD\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"},\"b\":{\"nom\":\"MARIX\",\"prenom\":\"Gregory\",\"naissance\":\"\",\"licence\":\"9384986\",\"club\":\"BADPAD\",\"classement\":\"141054\",\"email\":\"\",\"tel\":\"\"}}],\"groups\":null,\"scores\":{},\"times\":{},\"points\":[[1,1,250],[2,2,213],[3,3,188],[4,4,175],[5,5,150],[6,6,138],[7,7,125],[8,8,113],[9,12,58],[13,16,30]],\"demo\":false,\"seedv\":2,\"_tab\":\"accueil\",\"starts\":{},\"ends\":{},\"sets\":{},\"sig\":\"\",\"customPoints\":null,\"drawSeed\":1,\"terrains\":{},\"order\":null,\"bracketSeed\":4672,\"bracketDrawn\":false,\"drawKey\":null,\"orderV\":2}";
+var IDX='tableaux-padel-index',TK='tableaux-padel-t-',index={list:[]},cur=null,home=true,confirmDel=null,homeTab='avenir';
+function saveIndex(){try{localStorage.setItem(IDX,JSON.stringify(index))}catch(e){}}
+function entryOf(id,st){var M=st.meta||{};return {id:id,name:(M.level||'')+' '+(M.gender||'')+(M.date?' du '+fmtDate(M.date):''),date:M.date||'',n:(st.pairs||[]).filter(function(p){return p&&((p.a&&p.a.nom)||(p.b&&p.b.nom))}).length,teams:M.teams||0,drawn:!!st.bracketDrawn,up:Date.now()}}
+function putT(id,st,up){var e=entryOf(id,st),k=-1;if(up)e.up=up;index.list.forEach(function(x,ix){if(x.id===id)k=ix});if(k>=0)index.list[k]=e;else index.list.push(e);
+  try{localStorage.setItem(TK+id,JSON.stringify(st));saveIndex();return true}catch(err){return false}}
+function newId(){return 't'+Date.now().toString(36)+Math.floor(Math.random()*1e4).toString(36)}
+function addT(st,seed){var id=newId();putT(id,st);if(seed){index.list.forEach(function(x){if(x.id===id)x.seed=true});saveIndex()}else schedulePush(id);return id}
+function load(){
+  try{var o=JSON.parse(localStorage.getItem(IDX)||'null');if(o&&o.list)index=o}catch(e){}
+  if(!index.list.length){
+    var st=null;
+    try{var t=localStorage.getItem(KEY);if(t){var o2=JSON.parse(t);if(o2&&o2.pairs&&!o2.demo)st=o2}}catch(e){}
+    if(!st){try{st=JSON.parse(DEFAULT_JSON)}catch(e){st=example()}addT(st,true)}else addT(st);
+  }
+  S=null;cur=null;home=true;
+}
+function openT(id){
+  var st=null;if(role==='view')st=pubState[id];else{try{st=JSON.parse(localStorage.getItem(TK+id)||'null')}catch(e){}}
+  if(!st||!st.pairs){setStatus('Ce tournoi est introuvable.');return}
+  S=st;cur=id;home=false;fixState();lastSig[id]=sigOf(S);tab='poules';
+  confirmNew=false;confirmReset=false;flash='';selPair=null;koFilter=null;render();window.scrollTo(0,0);
+}
+function goHome(){
+  clearTimeout(drawTimer);try{stopTick()}catch(e){}var ovx=document.getElementById('drawcard');if(ovx)ovx.remove();drawAnim=null;
+  if(S&&cur)save();S=null;cur=null;home=true;confirmDel=null;render();window.scrollTo(0,0);
+}
+function sigOf(st){var t=st._tab;st._tab='';var j=JSON.stringify(st);st._tab=t;return j}
+function save(){
+  if(!S||!cur||role!=='edit')return;
+  S._tab=tab;
+  var sg=sigOf(S),msg='Enregistré à '+new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+'.';
+  if(lastSig[cur]===sg){try{localStorage.setItem(TK+cur,JSON.stringify(S))}catch(e){}return}
+  lastSig[cur]=sg;
+  if(putT(cur,S)){setStatus(msg+(syncState==='ok'?' Synchronisé sur tes appareils.':' Enregistré sur cet appareil.'));schedulePush(cur)}
+  else setStatus('Sauvegarde automatique indisponible ici : utilise « Sauvegarde » pour garder ton travail.');
+}
+/* ---------- synchronisation entre appareils (base partagée de l'artifact) ---------- */
+var role=(window.claude&&window.claude.use)?'pending':'edit',pubList=[],pubState={},pushedOnce=false;
+var dbh=null,syncState='pending',pushTm={},inflight={},lastSig={};
+function setSync(x){if(syncState===x)return;syncState=x;if(home&&!S)renderHome()}
+function entryById(id){return index.list.filter(function(x){return x.id===id})[0]}
+function schedulePush(id){if(!dbh||role!=='edit'||syncState==='ro')return;clearTimeout(pushTm[id]);pushTm[id]=setTimeout(function(){pushNow(id)},1200)}
+function syncFail(err){if(err&&err.code==='invalid_argument')setSync('ro');else setSync('off')}
+function pubJson(raw){try{var o=JSON.parse(raw);(o.pairs||[]).forEach(function(p){['a','b'].forEach(function(k){if(p[k]){p[k].email='';p[k].tel='';p[k].naissance=''}})});o.sets={};o.order=null;o._tab='';return JSON.stringify(o)}catch(e){return ''}}
+function pushNow(id){
+  if(!dbh||role!=='edit'||syncState==='ro')return;
+  if(inflight[id]){schedulePush(id);return}
+  var e=entryById(id);if(!e||e.seed)return;
+  var raw=null;try{raw=localStorage.getItem(TK+id)}catch(x){}if(!raw)return;
+  if(raw.length>200000){try{var o=JSON.parse(raw);o.sets={};raw=JSON.stringify(o)}catch(x){}}
+  inflight[id]=true;
+  Promise.all([dbh.collection('tournaments').doc(id).set({json:raw,up:e.up,deleted:false}),dbh.collection('public').doc(id).set({json:pubJson(raw),up:e.up,deleted:false})]).then(function(){inflight[id]=false;setSync('ok')}).catch(function(err){inflight[id]=false;syncFail(err)});
+}
+function pushDead(id,up){
+  if(!dbh||role!=='edit'||syncState==='ro')return;
+  dbh.collection('tournaments').doc(id).set({json:'',up:up,deleted:true}).catch(syncFail);
+  dbh.collection('public').doc(id).set({json:'',up:up,deleted:true}).catch(syncFail);
+}
+function onRemote(snap){
+  if(snap.metadata&&snap.metadata.fromCache)return;
+  var rem={},changed=false;
+  snap.docs.forEach(function(d){var x=d.data()||{};rem[d.id]={up:+x.up||0,deleted:!!x.deleted,json:x.json}});
+  var anyLive=Object.keys(rem).some(function(k){return !rem[k].deleted});
+  if(anyLive){index.list=index.list.filter(function(e){if(e.seed&&e.id!==cur){try{localStorage.removeItem(TK+e.id)}catch(x){}changed=true;return false}return true})}
+  index.dead=index.dead||{};
+  Object.keys(rem).forEach(function(id){
+    var r=rem[id],le=entryById(id);
+    if(r.deleted){
+      index.dead[id]=r.up;
+      if(le&&id!==cur){index.list=index.list.filter(function(x){return x.id!==id});try{localStorage.removeItem(TK+id)}catch(x){}changed=true}
+      return;
+    }
+    if(index.dead[id]&&index.dead[id]>r.up){pushDead(id,index.dead[id]);return}
+    if(!le||r.up>le.up){
+      if(id!==cur&&r.json){try{var st=JSON.parse(r.json);putT(id,st,r.up);lastSig[id]=sigOf(st);changed=true}catch(x){}}
+    }else if(le.up>r.up&&!le.seed)schedulePush(id);
+  });
+  index.list.forEach(function(e){if(!e.seed&&(!rem[e.id]||!pushedOnce))schedulePush(e.id)});pushedOnce=true;
+  Object.keys(index.dead).forEach(function(id){if(!rem[id]||!rem[id].deleted)pushDead(id,index.dead[id])});
+  saveIndex();
+  if(syncState!=='ro')setSync('ok');
+  if(changed&&home&&!S)renderHome();
+}
+/*SNAP_START*/var SNAP=null;/*SNAP_END*/
+var snapMode=false;
+function loadSnap(){
+  if(!SNAP)return false;var L=[],st={};
+  SNAP.items.forEach(function(x){try{var o=JSON.parse(x.json);if(o&&o.pairs){var e=entryOf(x.id,o);e.up=+x.up||0;L.push(e);st[x.id]=o}}catch(err){}});
+  pubList=L;pubState=st;snapMode=true;setSync('ok');if(home&&!S)renderHome();return true}
+function snapNote(){var d=new Date(SNAP.at);return 'Résultats du '+d.toLocaleDateString('fr-FR')+' à '+d.toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'})+' (version figée). Connecte-toi à ton compte Claude pour suivre en direct.'}
+function onPublic(snap){
+  if(snap.metadata&&snap.metadata.fromCache)return;
+  var L=[],st={};
+  snap.docs.forEach(function(d){var x=d.data()||{};if(x.deleted||!x.json)return;try{var o=JSON.parse(x.json);if(o&&o.pairs){var e=entryOf(d.id,o);e.up=+x.up||0;L.push(e);st[d.id]=o}}catch(err){}});
+  pubList=L;pubState=st;setSync('ok');
+  if(cur&&S){if(st[cur]){S=st[cur];fixState();render()}else goHome()}
+  else if(home)renderHome();
+}
+function startSync(){
+  try{
+    if(!(window.claude&&window.claude.use)){role='edit';setSync('off');return}
+    var tmo=setTimeout(function(){if(syncState==='pending')setSync('off')},10000);
+    window.claude.use('user').catch(function(){return null}).then(function(u){
+      role=(u&&u.canEdit&&u.canEdit())?'edit':'view';
+      document.body.classList.toggle('ro',role==='view');
+      if(role==='view'&&cur){S=null;cur=null;home=true}
+      render();
+      return window.claude.use('db');
+    }).then(function(db){
+      if(!db){clearTimeout(tmo);if(role==='view'&&loadSnap())return;setSync('off');return}
+      dbh=db;
+      if(role==='view'){db.collection('public').onSnapshot(function(snap){clearTimeout(tmo);onPublic(snap)},function(){clearTimeout(tmo);setSync('off')});return}
+      db.collection('tournaments').onSnapshot(function(snap){clearTimeout(tmo);onRemote(snap)},function(){clearTimeout(tmo);setSync('off')});
+    }).catch(function(){setSync('off')});
+  }catch(e){setSync('off')}
+}
+function setStatus(t){var el=document.getElementById('status'); if(el) el.textContent=t}
+
+/* ---------- utilitaires ---------- */
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function num(v){var n=parseFloat(String(v).replace(',','.')); return isNaN(n)?0:n}
+function toInt(v,d){var n=parseInt(v,10);return isNaN(n)?d:n}
+function sortByWeight(){
+  var ok=function(q){return isActive(q)&&num(q.a.classement)>0&&num(q.b.classement)>0};
+  var idx=S.pairs.map(function(q,i){return {q:q,i:i}});
+  var a=idx.filter(function(o){return ok(o.q)}).sort(function(x,y){return weight(x.q)-weight(y.q)||x.i-y.i});
+  var b=idx.filter(function(o){return !ok(o.q)});
+  S.pairs=a.concat(b).map(function(o){return o.q});
+}
+function placeByWeight(p){
+  var w=weight(p),idx=S.pairs.indexOf(p);if(idx<0)return;
+  S.pairs.splice(idx,1);var at=S.pairs.length;
+  for(var i=0;i<S.pairs.length;i++){var q=S.pairs[i];if(isActive(q)&&num(q.a.classement)&&num(q.b.classement)&&weight(q)>w){at=i;break}}
+  S.pairs.splice(at,0,p);
+}
+function movePair(from,to){/* to = position d'insertion avant retrait */
+  if(from<0||from>=S.pairs.length)return;
+  var p=S.pairs.splice(from,1)[0];if(to>from)to--;
+  to=Math.max(0,Math.min(S.pairs.length,to));S.pairs.splice(to,0,p);
+}
+function weight(p){return num(p.a.classement)+num(p.b.classement)}
+function isActive(p){return !!(p.a.nom||p.b.nom||p.a.prenom||p.b.prenom||num(p.a.classement)||num(p.b.classement))}
+function fmtTime(min){min=Math.round(min);var h=Math.floor(min/60)%24,m=((min%60)+60)%60;return (h<10?'0':'')+h+':'+(m<10?'0':'')+m}
+function parseTime(s){var m=/^(\d{1,2})\s*[h:]\s*(\d{0,2})$/i.exec(String(s).trim()); return m?(+m[1])*60+(+(m[2]||0)):570}
+function fmtDate(d){var m=/^(\d{4})-(\d{2})-(\d{2})$/.exec(d||''); return m?m[3]+'/'+m[2]+'/'+m[1]:(d||'')}
+function tName(){var M=S.meta;return M.level+' '+M.gender+(M.date?' du '+fmtDate(M.date):'')}
+function tierName(t){return t===1?'1er':t+'e'}
+function rngMaker(seed){return function(){seed|=0;seed=seed+0x6D2B79F5|0;var t=Math.imul(seed^seed>>>15,1|seed);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296}}
+
+/* ---------- moteur ---------- */
+var ORD3=[[1,3],[2,3],[1,2]], ORD4=[[1,4],[2,3],[1,3],[2,4],[1,2],[3,4]];
+function rrOrder(n){
+  if(n===2)return [[1,2]]; if(n===3)return ORD3; if(n===4)return ORD4;
+  var m=n%2?n+1:n, arr=[],i,r; var pl=[];for(i=0;i<m;i++)pl.push(i);
+  for(r=0;r<m-1;r++){
+    for(i=0;i<m/2;i++){var a=pl[i],b=pl[m-1-i]; if(a<n&&b<n)arr.push([Math.min(a,b)+1,Math.max(a,b)+1])}
+    pl.splice(1,0,pl.pop());
+  }
+  return arr;
+}
+function stdOrder(n){var a=[1,2];if(n<2)return [1];while(a.length<n){var m=a.length*2,b=[];a.forEach(function(s){b.push(s,m+1-s)});a=b}return a}
+function hasKoScores(){return Object.keys(S.scores).some(function(k){var v=S.scores[k];return !/^P\d+\.\d+$/.test(k)&&v&&(v.a!==''&&v.a!=null||v.b!==''&&v.b!=null)})}
+function drawnOK(){return !!(S.bracketDrawn&&S.drawKey===R.drawKey)||hasKoScores()}
+function veilRef(m,ref){if(m.kind==='ko'&&m.main&&/^S[34]$/.test(ref||'')&&R.seedTab)return !S.tsDrawn&&!hasKoScores();return !!(m.kind==='ko'&&m.main&&/^[TB]/.test(ref||'')&&(drawAnim?!drawAnim.shown[ref]:!drawnOK()))}
+function stopTick(){if(drawTick){clearInterval(drawTick);drawTick=null}}
+var ORDKEY='tableaux-padel-order-v2',ORDTPL=null;
+try{ORDTPL=JSON.parse(localStorage.getItem(ORDKEY)||'null')}catch(e){ORDTPL=null}
+function setTpl(a){ORDTPL=a;try{if(a)localStorage.setItem(ORDKEY,JSON.stringify(a));else localStorage.removeItem(ORDKEY)}catch(e){}}
+var drawCache={};
+function drawOrder(QL,seed){
+  var key=seed+'|'+QL.map(function(q){return q.ref}).join(',');
+  if(drawCache[key])return drawCache[key];
+  var n=QL.length,rnd=rngMaker(seed*7919+13),tmax=0,i,j;
+  QL.forEach(function(q){if(q.t>tmax)tmax=q.t});
+  function cost(p){
+    var c=0,a,b,x,y,sz,bl,g,cnt;
+    for(x=0;x<n;x+=2){
+      a=QL[p[x]];b=QL[p[x+1]];
+      if(a.g!=null&&a.g===b.g)c+=1000;
+      var w=(a.t===1||b.t===1)?100:20;
+      c+=Math.abs(b.t-(tmax+1-a.t))*w;
+    }
+    for(sz=4;sz<=n/2;sz*=2){
+      for(bl=0;bl<n;bl+=sz){
+        cnt={};
+        for(y=bl;y<bl+sz;y++){g=QL[p[y]].g;if(g!=null){c+=(cnt[g]||0)*(sz===4?10:4);cnt[g]=(cnt[g]||0)+1}}
+      }
+    }
+    return c;
+  }
+  var best=null,bc=1e9,r;
+  for(r=0;r<80&&bc>0;r++){
+    var p=[];for(i=0;i<n;i++)p.push(i);
+    for(i=n-1;i>0;i--){j=Math.floor(rnd()*(i+1));var t=p[i];p[i]=p[j];p[j]=t}
+    var cc=cost(p),it;
+    for(it=0;it<500&&cc>0;it++){
+      var u=Math.floor(rnd()*n),v=Math.floor(rnd()*n);if(u===v)continue;
+      var tt=p[u];p[u]=p[v];p[v]=tt;
+      var nc=cost(p);
+      if(nc<=cc)cc=nc;else{tt=p[u];p[u]=p[v];p[v]=tt}
+    }
+    if(cc<bc){bc=cc;best=p.slice()}
+  }
+  drawCache[key]=best;return best;
+}
+function bracketOrder(list,preset){
+  var n=list.length; if(n<2) return [0];
+  var ord=(preset||stdOrder(n)).map(function(s){return s-1});
+  if(!preset){
+    var clash=function(i){var a=list[ord[2*i]],b=list[ord[2*i+1]];return a.g!=null&&a.g===b.g};
+    for(var pass=0;pass<3;pass++){
+      for(var i=0;i<n/2;i++){
+        if(!clash(i))continue;
+        var fixed=false;
+        for(var phase=0;phase<2&&!fixed;phase++){
+          for(var p=0;p<n&&!fixed;p++){
+            if(Math.floor(p/2)===i)continue;
+            if(phase===0&&list[ord[p]].t!==list[ord[2*i+1]].t)continue;
+            var tmp=ord[2*i+1];ord[2*i+1]=ord[p];ord[p]=tmp;
+            if(!clash(i)&&!clash(Math.floor(p/2)))fixed=true; else{tmp=ord[2*i+1];ord[2*i+1]=ord[p];ord[p]=tmp}
+          }
+        }
+      }
+    }
+  }
+  return ord;
+}
+function finished(sc){return !!(sc&&Math.max(sc[0],sc[1])>=9&&sc[0]!==sc[1])}
+function scoreOf(id){
+  var s=S.scores[id]; if(!s) return null;
+  var a=parseInt(s.a,10), b=parseInt(s.b,10);
+  if(isNaN(a)||isNaN(b)) return null;
+  return [a,b];
+}
+function roundName(n){return n===2?'Finale':n===4?'Demi-finales':n===8?'Quarts de finale':n===16?'Huitièmes de finale':'1/'+(n/2)+' de finale'}
+
+var SEEDPOS={2:[2,1],4:[4,1,3,2],8:[8,1,3,6,7,2,4,5],16:[16,1,8,9,12,5,4,13,15,2,7,10,11,6,3,14]};
+function seedRounds(S_,Q){var o=[];[2,4,8,16].forEach(function(E){var f=E-S_;if(S_>=1&&f>=1&&(Q===f||Q===2*f))o.push(E)});return o}
+function compute(){
+  var M=S.meta,R={errors:[],notes:[]};
+  var all=S.pairs.map(function(p,i){return {id:p.id,p:p,idx:i,w:weight(p),act:isActive(p),seed:null}});
+  var order=all.filter(function(a){return a.act}).sort(function(x,y){return x.w-y.w||x.idx-y.idx});
+  order.forEach(function(p,i){p.seed=i+1});
+  var by={};all.forEach(function(p){by[p.id]=p});
+  R.by=by;R.order=order;R.N=order.length;R.all=all;
+  var N=R.N,G=toInt(M.poules,0),Q=toInt(M.qualified,0);
+  R.G=G;R.Q=Q;R.nSeeds=Math.max(0,Math.min(toInt(M.seeds,G),N));
+  var SM=M.seedMode==='tableau'&&R.nSeeds>0,Sn=SM?R.nSeeds:0,Np=N-Sn;R.seedTab=SM;R.Sn=Sn;R.Np=Np;R.Qe=Q+Sn;R.E=0;
+  var porder=order.slice(Sn);
+  var err=function(t){R.errors.push(t)};
+  if(Np<4)err(SM?'Il faut au moins 4 paires pour les poules, hors têtes de série ('+Np+' pour le moment).':'Il faut au moins 4 paires inscrites ('+N+' pour le moment).');
+  if(G<1||(Np>=4&&G>Math.floor(Np/2)))err('Le nombre de poules doit être compris entre 1 et '+Math.max(1,Math.floor(Np/2))+' pour '+Np+' paires'+(SM?' (hors têtes de série)':'')+'.');
+  if(Q<1||Q>16)err('Le nombre de qualifiés doit être compris entre 1 et 16.');
+  else if(!(Q>=2&&!(Q&(Q-1)))&&!SM)err('Avec '+Q+' qualifiés, le tableau n\'est complet que si des têtes de série y entrent directement (Configuration > Les têtes de série > « Entrent dans le tableau »). Sinon choisis 2, 4, 8 ou 16 qualifiés.');
+  if(Np>=4&&Q>Np)err('Il y a plus de qualifiés ('+Q+') que de paires dans les poules ('+Np+').');
+  if(G>0&&Q>=1&&Q<G)err('Il faut au moins un qualifié par poule : '+G+' poules pour '+Q+' qualifiés.');
+  var k=G>0?Math.floor(Q/G):0, r=G>0?Q-k*G:0, minSize=G>0?Math.floor(Np/G):0;
+  if(!R.errors.length){
+    if(k>minSize)err('Pas assez de paires par poule pour qualifier '+k+' paires par poule.');
+    if(r>0&&k+1>minSize)err('Les meilleurs '+tierName(k+1)+' demandent des poules d\'au moins '+(k+1)+' paires.');
+  }
+  if(SM&&!R.errors.length){
+    var so=seedRounds(Sn,Q);
+    if(!so.length)err('Avec '+Sn+' tête(s) de série et '+Q+' qualifiés, aucun tour d\'entrée possible (il faut que têtes de série + qualifiés remplissent un tableau, ou que les qualifiés jouent un tour de barrage).');
+    else R.E=so.indexOf(toInt(M.seedRound,0))>=0?toInt(M.seedRound,0):so[0];
+    R.seedOpts=so;
+  }
+  R.k=k;R.r=r;
+  if(R.errors.length){R.ok=false;return R}
+  R.ok=true;
+
+  /* composition des poules */
+  var g=[],i;for(i=0;i<G;i++)g.push([]);
+  porder.forEach(function(p,kk){var rw=Math.floor(kk/G),c=kk%G;g[rw%2?G-1-c:c].push(p.id)});
+  if(M.drawMode==='tirage'){
+    var sizes=g.map(function(x){return x.length}),gg=[];for(i=0;i<G;i++)gg.push([]);
+    porder.slice(0,SM?0:R.nSeeds).forEach(function(p,kk){var rw=Math.floor(kk/G),c=kk%G;gg[rw%2?G-1-c:c].push(p.id)});
+    var rest=porder.slice(SM?0:R.nSeeds),rnd=rngMaker(S.drawSeed||1);
+    for(i=rest.length-1;i>0;i--){var j=Math.floor(rnd()*(i+1)),t=rest[i];rest[i]=rest[j];rest[j]=t}
+    var gi=0;rest.forEach(function(p){var tries=0;while(gg[gi].length>=sizes[gi]&&tries<G){gi=(gi+1)%G;tries++}gg[gi].push(p.id);gi=(gi+1)%G});
+    g=gg;
+  }
+  R.manual=false;
+  if(S.groups&&S.groups.length===G){
+    var seen={},n=0,good=true;
+    S.groups.forEach(function(gr){gr.forEach(function(id){if(!by[id]||!by[id].act||seen[id]||by[id].seed<=Sn)good=false;seen[id]=1;n++});if(gr.length<2)good=false});
+    if(good&&n===Np){g=S.groups.map(function(x){return x.slice()});R.manual=true}
+  }
+  g=g.map(function(gr){return gr.slice().sort(function(a,b){return by[a].seed-by[b].seed})});
+  R.groups=g;
+  var gOf={};g.forEach(function(gr,gi2){gr.forEach(function(id){gOf[id]=gi2+1})});
+  var minS=Math.min.apply(null,g.map(function(x){return x.length})),maxS=Math.max.apply(null,g.map(function(x){return x.length}));
+  if(k>minS||(r>0&&k+1>minS)){R.errors.push('Une poule est trop petite pour ce nombre de qualifiés.');R.ok=false;return R}
+
+  var MM={},list=[];R.M=MM;R.list=list;
+  function add(m){MM[m.id]=m;list.push(m);return m}
+  R.pool=g.map(function(ids,gi2){
+    var ord=rrOrder(ids.length),ms=[];
+    ord.forEach(function(pr,kk){ms.push(add({id:'P'+(gi2+1)+'.'+(kk+1),kind:'pool',title:'Poule '+(gi2+1)+' · match '+(kk+1),g:gi2,round:kk,a:ids[pr[0]-1],b:ids[pr[1]-1]}))});
+    return {ids:ids,ms:ms};
+  });
+  function resolveMatch(m){
+    var sc=scoreOf(m.id); m.sa=sc?sc[0]:null; m.sb=sc?sc[1]:null;
+    var rw=S.scores[m.id]||{};m.ra=rw.a==null?'':rw.a;m.rb=rw.b==null?'':rw.b;
+    m.tie=!!(sc&&sc[0]===sc[1]&&sc[0]>=9); m.res=null;
+    if(finished(sc)&&m.a&&m.b) m.res=sc[0]>sc[1]?{w:m.a,l:m.b}:{w:m.b,l:m.a};
+  }
+  R.pool.forEach(function(P){
+    P.ms.forEach(resolveMatch);
+    var t={};P.ids.forEach(function(id){t[id]={id:id,w:0,l:0,pf:0,pa:0}});
+    P.ms.forEach(function(m){if(!m.res)return;
+      var sw=m.res.w===m.a?m.sa:m.sb, sl=m.res.w===m.a?m.sb:m.sa;
+      t[m.res.w].w++;t[m.res.l].l++;t[m.res.w].pf+=sw;t[m.res.w].pa+=sl;t[m.res.l].pf+=sl;t[m.res.l].pa+=sw});
+    var h2h={};P.ms.forEach(function(m){if(m.res){h2h[m.res.w+'>'+m.res.l]=1}});
+    var rws=P.ids.map(function(id){return t[id]}).sort(function(x,y){return y.w-x.w||(y.pf-y.pa)-(x.pf-x.pa)||by[x.id].seed-by[y.id].seed});
+    var out2=[],gi5=0;
+    while(gi5<rws.length){
+      var gj=gi5;while(gj<rws.length&&rws[gj].w===rws[gi5].w&&(rws[gj].pf-rws[gj].pa)===(rws[gi5].pf-rws[gi5].pa))gj++;
+      var grp=rws.slice(gi5,gj);
+      if(grp.length>=2){
+        /* égalité de victoires ET de différence de jeux : confrontation directe (mini-classement entre les paires à égalité), puis rang */
+        var inG={},mi={};grp.forEach(function(g){inG[g.id]=1;mi[g.id]={w:0,d:0}});
+        P.ms.forEach(function(m){if(!m.res||!inG[m.res.w]||!inG[m.res.l])return;
+          var sw2=m.res.w===m.a?m.sa:m.sb,sl2=m.res.w===m.a?m.sb:m.sa;
+          mi[m.res.w].w++;mi[m.res.w].d+=sw2-sl2;mi[m.res.l].d-=sw2-sl2});
+        grp=grp.slice().sort(function(x,y){return mi[y.id].w-mi[x.id].w||mi[y.id].d-mi[x.id].d||by[x.id].seed-by[y.id].seed});
+      }
+      out2=out2.concat(grp);gi5=gj;
+    }
+    P.rows=out2;
+    P.done=P.ms.every(function(m){return m.res});
+  });
+  R.allDone=R.pool.every(function(P){return P.done});
+  var cmpBest=function(x,y){return (y.pf-y.pa)-(x.pf-x.pa)||y.w-x.w||by[x.id].seed-by[y.id].seed};
+
+  /* meilleurs (k+1)e */
+  var bestList=[],bestRest=[];
+  if(r>0&&R.allDone){
+    var cand=[];R.pool.forEach(function(P){if(P.rows[k])cand.push(P.rows[k])});
+    cand.sort(cmpBest);bestList=cand.slice(0,r);bestRest=cand.slice(r);
+  }
+  R.bestList=bestList;
+
+  /* qualifiés dans l'ordre des têtes de série du tableau */
+  var QL=[],t,gi3,j;
+  for(t=1;t<=k;t++)for(gi3=1;gi3<=G;gi3++)QL.push({ref:'T'+t+':'+gi3,g:gi3,t:t});
+  for(j=1;j<=r;j++)QL.push({ref:'B'+j,g:bestList[j-1]?gOf[bestList[j-1].id]:null,t:k+1});
+  var preset=(G===4&&Q===8&&r===0&&k===2)?[2,5,4,6,8,3,7,1]:null;
+  var QLd=QL.map(function(q){return {ref:q.ref,g:/^T/.test(q.ref)?q.g:null,t:q.t}});
+  function smOrder(L,Sn_,E_){
+    var n=L.length,pr=SEEDPOS[E_],taken={},fr=[],i;
+    for(i=1;i<=Sn_;i++)taken[pr[i-1]-1]=1;
+    for(i=0;i<E_;i++)if(!taken[i])fr.push(i);
+    var rg=rngMaker((S.bracketSeed||1)*7919+13),ord=[];
+    for(i=0;i<n;i++)ord.push(i);
+    for(i=n-1;i>0;i--){var j2=Math.floor(rg()*(i+1)),t2=ord[i];ord[i]=ord[j2];ord[j2]=t2}
+    var hasB=L.some(function(q){return /^B/.test(q.ref)}),mate=fr.indexOf((pr[0]-1)^1);
+    function cost(){var c=0,pos={};fr.forEach(function(sx,ix){pos[sx]=L[ord[ix]]});
+      if(hasB&&mate>=0&&!/^B/.test(L[ord[mate]].ref))c+=100;for(var m=0;m<E_/2;m++){var a1=pos[2*m],b1=pos[2*m+1];if(a1&&b1&&a1.g!=null&&a1.g===b1.g)c++}return c}
+    var cc=cost();
+    for(var it=0;it<600&&cc>0;it++){var x=Math.floor(rg()*n),y=Math.floor(rg()*n);if(x===y)continue;var tt=ord[x];ord[x]=ord[y];ord[y]=tt;var nc=cost();if(nc<=cc)cc=nc;else{tt=ord[x];ord[x]=ord[y];ord[y]=tt}}
+    return ord;
+  }
+  var qord=(SM&&R.E&&Q===R.E-Sn)?smOrder(QLd,Sn,R.E):(QL.length>=2&&!(QL.length&(QL.length-1)))?drawOrder(QLd,S.bracketSeed||1):bracketOrder(QL,preset);
+
+  /* place certaine avant la fin de la poule : aucune issue possible des matchs restants ne peut la changer */
+  function certainRows(P){
+    var out={},rem={},W={};
+    P.ids.forEach(function(id){rem[id]=0});
+    P.ms.forEach(function(m){if(!m.res){rem[m.a]++;rem[m.b]++}});
+    P.rows.forEach(function(r){W[r.id]=r.w});
+    P.ids.forEach(function(x){
+      var mn=W[x],mx=W[x]+rem[x],A=0,B=0;
+      P.ids.forEach(function(y){if(y===x)return;var ymn=W[y],ymx=W[y]+rem[y];if(ymn>mx)A++;if(ymx>=mn)B++});
+      if(A===B)out[A+1]=x;
+    });
+    return out;
+  }
+  function slotPair(ref){
+    var m;
+    if((m=/^T(\d+):(\d+)$/.exec(ref))){
+      var P=R.pool[+m[2]-1];
+      if(P.done)return P.rows[+m[1]-1]?P.rows[+m[1]-1].id:null;
+      return certainRows(P)[+m[1]]||null;
+    }
+    if((m=/^S(\d+)$/.exec(ref))){return order[+m[1]-1]?order[+m[1]-1].id:null}
+    if((m=/^B(\d+)$/.exec(ref))){return bestList[+m[1]-1]?bestList[+m[1]-1].id:null}
+    if((m=/^X(\d+)$/.exec(ref))){return null}
+    if((m=/^([WL]):(\w+)$/.exec(ref))){var mm=MM[m[2]];return mm&&mm.res?(m[1]==='W'?mm.res.w:mm.res.l):null}
+    return null;
+  }
+  R.drawKey=QL.map(function(q){return q.ref}).join(',');
+  R.slotPair=function(ref){return slotPair(ref)};
+  R.slotLabel=function(ref){return slotLabel(ref)};
+  function slotLabel(ref){
+    var m;
+    if((m=/^T(\d+):(\d+)$/.exec(ref))){
+      var P=R.pool[+m[2]-1];
+      if(!P.done&&P.ms.some(function(x){return x.res})&&P.rows[+m[1]-1]){var id=P.rows[+m[1]-1].id;return by[id].p.a.nom+' / '+by[id].p.b.nom+' (prov.)'}
+      return tierName(+m[1])+' poule '+m[2];
+    }
+    if((m=/^S(\d+)$/.exec(ref)))return 'Tête de série '+m[1];
+    if((m=/^B(\d+)$/.exec(ref)))return 'Meilleur '+tierName(k+1)+' n°'+m[1];
+    if((m=/^([WL]):(\w+)$/.exec(ref))){var mm=MM[m[2]];return (m[1]==='W'?'Vainqueur ':'Perdant ')+(mm?mm.title.replace(/^Places /,''):m[2])}
+    return '?';
+  }
+
+  /* arbre des matchs */
+  var cnt=0,placeRefs={},sections=[],mainRounds=[];
+  R.sections=sections;R.mainRounds=mainRounds;
+  function mtitle(n,start,jx,main){
+    if(main)return n===2?'Finale':(n===4?'Demi ':n===8?'Quart ':n===16?'Huitième ':'Tour ')+jx;
+    if(n===2)return 'Places '+start+'-'+(start+1);
+    if(n===4)return 'Places '+start+'-'+(start+n-1)+' ('+jx+')';
+    return 'Places '+start+'-'+(start+n-1)+' · '+(n===8?'quart ':'tour ')+jx;
+  }
+  function playoff(ents,start,sec,main,depth){
+    var n=ents.length;
+    if(n===1){placeRefs[start]=ents[0];return}
+    var ws=[],ls=[],round=[];
+    for(var q=0;q<n;q+=2){
+      cnt++;var id='K'+cnt;
+      var m=add({id:id,kind:'ko',title:mtitle(n,start,q/2+1,main),ra:ents[q],rb:ents[q+1],ia:ents[q],ib:ents[q+1],a:slotPair(ents[q]),b:slotPair(ents[q+1]),la:slotLabel(ents[q]),lb:slotLabel(ents[q+1]),main:main,sec:sec.name});
+      resolveMatch(m);sec.matches.push(m);round.push(m);ws.push('W:'+id);ls.push('L:'+id);
+    }
+    if(main)mainRounds.push(round);
+    playoff(ws,start,sec,main,depth+1);
+    if(main){
+      var s2=start+n/2,sz=n/2;
+      var ns={name:sz===2?'Places '+s2+'-'+(s2+1):'Places '+s2+' à '+(s2+sz-1),start:s2,matches:[]};
+      if(sz>=2)sections.push(ns);playoff(ls,s2,ns,false,0);
+    }else playoff(ls,start+n/2,sec,false,depth+1);
+  }
+  var mainSec={name:'Tableau final',start:1,matches:[]};sections.push(mainSec);
+  var mainEnts=qord.map(function(ix){return QL[ix].ref});
+  if(SM){
+    var Ee=R.E,slots=[],pr=SEEDPOS[Ee],ii;
+    for(ii=0;ii<Ee;ii++)slots.push(null);
+    var tsr=rngMaker((S.tsSeed||1)*104729+7),swp=S.tsDrawn&&tsr()<0.5?1:0;
+    for(ii=1;ii<=Sn;ii++){var nn=ii;if(swp&&(ii===3||ii===4))nn=7-ii;slots[pr[ii-1]-1]='S'+nn}
+    var free=[];slots.forEach(function(v,ix){if(!v)free.push(ix)});
+    if(Q===Ee-Sn){free.forEach(function(sx,ix){slots[sx]=mainEnts[ix]})}
+    else{
+      var pre=[],pls=[];
+      for(ii=0;ii<Q/2;ii++){
+        cnt++;var pid='K'+cnt,ea=mainEnts[2*ii],eb=mainEnts[2*ii+1];
+        var pm0=add({id:pid,kind:'ko',title:'Barrage '+(ii+1),ra:ea,rb:eb,ia:ea,ib:eb,a:slotPair(ea),b:slotPair(eb),la:slotLabel(ea),lb:slotLabel(eb),main:true,sec:mainSec.name,pre:true});
+        resolveMatch(pm0);mainSec.matches.push(pm0);pre.push(pm0);slots[free[ii]]='W:'+pid;pls.push('L:'+pid);
+      }
+      R.prelim=pre;
+      if(pls.length===1)placeRefs[Ee+1]=pls[0];
+      else{var ps2={name:'Places '+(Ee+1)+' à '+(Ee+pls.length),start:Ee+1,matches:[]};sections.push(ps2);playoff(pls,Ee+1,ps2,false,0)}
+    }
+    mainEnts=slots;
+  }
+  playoff(mainEnts,1,mainSec,true,0);
+  sections.sort(function(a,b){return a.start-b.start});
+
+  /* non-qualifiés */
+  var M2=Np-Q;R.M2=M2;
+  var ents=[];
+  if(r===0){for(t=k+1;t<=maxS;t++)for(gi3=1;gi3<=G;gi3++)if(g[gi3-1].length>=t)ents.push({ref:'T'+t+':'+gi3,g:gi3,t:t})}
+  var pow2=M2>=2&&!(M2&(M2-1));
+  var wantPlay=M.classMode==='play'||(M.classMode==='auto'&&M2>=2&&M2<=4);
+  R.classPlay=!!(wantPlay&&r===0&&pow2&&ents.length===M2);
+  if(M.classMode==='play'&&!R.classPlay&&M2>=2)R.notes.push('Les matchs de classement des non-qualifiés ne sont possibles que si leur nombre est une puissance de 2 et sans meilleurs '+tierName(k+1)+' : classement des poules utilisé à la place.');
+  if(R.classPlay){
+    var presetC=(G===4&&M2===4&&ents.every(function(e){return e.t===ents[0].t}))?[4,2,1,3]:null;
+    var co=bracketOrder(ents,presetC);
+    var cs={name:'Places '+(Q+Sn+1)+' à '+N,start:Q+Sn+1,matches:[]};sections.push(cs);
+    playoff(co.map(function(ix){return ents[ix].ref}),Q+Sn+1,cs,false,0);
+    sections.sort(function(a,b){return a.start-b.start});
+  }
+  /* classement par poules (non joué) : victoires, défaites, différence de jeux ;
+     égalité parfaite dans la même poule = confrontation directe, entre poules = places ex aequo (la plus haute) */
+  var rankPlaces=[],dispPlace={};
+  if(!R.classPlay&&R.allDone){
+    var cands=[];
+    R.pool.forEach(function(P,pgi){P.rows.forEach(function(row,ri){
+      var q=ri<k||(ri===k&&r>0&&bestList.some(function(x){return x.id===row.id}));
+      if(!q)cands.push({row:row,g:pgi,ri:ri,w:row.w,l:row.l,d:row.pf-row.pa})})});
+    cands.sort(function(x,y){return y.w-x.w||x.l-y.l||y.d-x.d||x.ri-y.ri||by[x.row.id].seed-by[y.row.id].seed});
+    /* cohérence avec le classement interne des poules */
+    var i6=0;
+    while(i6<cands.length){
+      var j6=i6;while(j6<cands.length&&cands[j6].w===cands[i6].w&&cands[j6].l===cands[i6].l)j6++;
+      var grp2=cands.slice(i6,j6),res2=grp2.slice(),pg={};
+      grp2.forEach(function(c,ix){(pg[c.g]=pg[c.g]||[]).push(ix)});
+      Object.keys(pg).forEach(function(g6){
+        var slots=pg[g6],mem=slots.map(function(ix){return grp2[ix]}).sort(function(x,y){return x.ri-y.ri});
+        slots.forEach(function(ix,n6){res2[ix]=mem[n6]})});
+      for(var z=0;z<res2.length;z++)cands[i6+z]=res2[z];
+      i6=j6;
+    }
+    cands.forEach(function(c,ix){
+      var place=Q+Sn+1+ix,prev=ix>0?cands[ix-1]:null;
+      if(prev&&prev.w===c.w&&prev.l===c.l&&prev.d===c.d&&prev.g!==c.g)place=dispPlace[Q+Sn+ix]||Q+Sn+ix;
+      dispPlace[Q+Sn+1+ix]=place;rankPlaces.push(c.row.id)});
+  }
+  /* places finales */
+  var places={};
+  Object.keys(placeRefs).forEach(function(pl){places[pl]=slotPair(placeRefs[pl])});
+  rankPlaces.forEach(function(id,ix){places[Q+Sn+1+ix]=id});
+  R.places=places;R.dispPlace=dispPlace;
+
+  /* planning */
+  var courts=Math.max(1,toInt(M.courts,1)), dur=Math.max(5,toInt(M.dur,45))+Math.max(0,toInt(M.pause,0)), t0=parseTime(M.start);
+  var used=[],slotOf={},last={},gEnd=[],gLeft=[];
+  for(i=0;i<G;i++){gEnd.push(0);gLeft.push(R.pool[i]?R.pool[i].ms.length:0)}
+  function put(min){var s=min;while((used[s]||0)>=courts)s++;used[s]=(used[s]||0)+1;return s}
+  var maxRound=0,poolLeft=0;R.pool.forEach(function(P){maxRound=Math.max(maxRound,P.ms.length);poolLeft+=P.ms.length});
+  var depth={};
+  function depDepth(ref){var m;if((m=/^[WL]:(\w+)$/.exec(ref)))return depth[m[1]]||1;return 0}
+  var ko=list.filter(function(m){return m.kind==='ko'});
+  ko.forEach(function(m){depth[m.id]=1+Math.max(depDepth(m.ia),depDepth(m.ib))});
+  var defOrder=[];
+  if(R.pool.length===4&&R.pool.every(function(P){return P.ms.length===6})){
+    /* ordre par défaut des poules de 4 paires (4 poules) */
+    ['1.1','2.1','3.1','4.1','4.2','1.2','2.2','3.2','4.3','4.4','1.3','2.3','2.4','3.3','3.4','1.4','2.5','3.5','4.5','1.5','1.6','2.6','3.6','4.6'].forEach(function(k){
+      var pm=R.pool[+k.split('.')[0]-1].ms[+k.split('.')[1]-1];if(pm)defOrder.push(pm.id)});
+  }
+  for(var rr=0;rr<maxRound;rr++)for(var gp=0;gp<R.pool.length;gp++){var pm=R.pool[gp].ms[rr];if(pm&&defOrder.indexOf(pm.id)<0)defOrder.push(pm.id)}
+  ko.map(function(m,ix){return {m:m,ix:ix}}).sort(function(x,y){return depth[x.m.id]-depth[y.m.id]||x.ix-y.ix}).forEach(function(o){defOrder.push(o.m.id)});
+  var ord=[],seen={};
+  (S.order||ORDTPL||[]).forEach(function(id){if(MM[id]&&!seen[id]){seen[id]=1;ord.push(id)}});
+  defOrder.forEach(function(id){if(!seen[id]){seen[id]=1;ord.push(id)}});
+  function depSlot(ref){var m;
+    if((m=/^T\d+:(\d+)$/.exec(ref)))return gEnd[+m[1]-1];
+    if(/^B\d+$/.test(ref))return gEnd.length?Math.max.apply(null,gEnd):0;
+    if((m=/^[WL]:(\w+)$/.exec(ref)))return slotOf[m[1]]==null?0:slotOf[m[1]];
+    return 0}
+  function ready(m){
+    if(m.kind==='pool')return true;
+    return [m.ia,m.ib].every(function(ref){var x;
+      if((x=/^T\d+:(\d+)$/.exec(ref)))return gLeft[+x[1]-1]===0;
+      if(/^B\d+$/.test(ref))return poolLeft===0;
+      if((x=/^[WL]:(\w+)$/.exec(ref)))return slotOf[x[1]]!=null;
+      return true})}
+  var queue=ord.slice(),prevSlot=0;
+  while(queue.length){
+    var qi=-1;for(var z=0;z<queue.length;z++){if(ready(MM[queue[z]])){qi=z;break}}
+    if(qi<0)qi=0;
+    var qm=MM[queue.splice(qi,1)[0]],sl;
+    if(qm.kind==='pool'){
+      sl=put(Math.max(prevSlot,last[qm.a]==null?0:last[qm.a]+1,last[qm.b]==null?0:last[qm.b]+1));
+      last[qm.a]=last[qm.b]=sl;gEnd[qm.g]=Math.max(gEnd[qm.g],sl);gLeft[qm.g]--;poolLeft--;
+    }else sl=put(Math.max(prevSlot,depSlot(qm.ia)+1,depSlot(qm.ib)+1));
+    slotOf[qm.id]=sl;prevSlot=sl;
+  }
+  var bySlot={};
+  list.forEach(function(m){m.slot=slotOf[m.id]});
+  var ordered=ord.map(function(id){return MM[id]}).sort(function(x,y){return x.slot-y.slot});
+  ordered.forEach(function(m){bySlot[m.slot]=(bySlot[m.slot]||0)+1;m.court=bySlot[m.slot];
+    m.time=(S.times&&S.times[m.id])||DEFTIMES[m.id]||fmtTime(t0+m.slot*dur)});
+  R.order=ordered.map(function(m){return m.id});
+  R.names=function(id){var p=by[id];return p?(p.p.a.nom||'—')+' / '+(p.p.b.nom||'—'):''};
+  R.gOf=gOf;
+  return R;
+}
+
+/* ---------- points ---------- */
+function currentTable(){return pointsTable(S.meta.level,S.meta.gender,R&&R.N?R.N:toInt(S.meta.teams,12))}
+function pointsFor(place){
+  if(S.customPoints&&S.customPoints[place-1]!=null)return num(S.customPoints[place-1]);
+  var t=currentTable(),a=t.arr;
+  if(place<=a.length)return a[place-1];
+  return t.flat?a[a.length-1]:0;
+}
+
+/* signature de structure : chaque configuration garde ses scores */
+function syncSig(){
+  if(!R.ok)return;
+  var sig=JSON.stringify([R.groups,R.Q,R.classPlay,R.pool.map(function(P){return P.ids.length})]);
+  if(S.sig===sig)return;
+  if(!S.sig){S.sig=sig;return}
+  if(S.sig){S.sets[S.sig]={scores:S.scores,times:S.times,starts:S.starts,ends:S.ends,terrains:S.terrains}}
+  var nx=S.sets[sig];
+  S.scores=nx?nx.scores:{};S.times=nx?nx.times:{};S.starts=nx?nx.starts:{};S.ends=nx?nx.ends:{};S.terrains=nx&&nx.terrains?nx.terrains:{};
+  if(S.sig&&nx===undefined&&Object.keys(S.sets[S.sig].scores).length)flash='La composition des poules a changé : les scores précédents sont gardés de côté et reviendront si tu retrouves la même composition.';
+  S.sig=sig;
+  R=compute();
+}
+
+/* ---------- rendu ---------- */
+var R=null;
+function pairLabel(id){return R.names(id)}
+function seedTag(id){var s=R.by[id].seed;return s<=R.nSeeds?'TS'+s:'#'+s}
+function hm(ms){var d=new Date(ms);return (d.getHours()<10?'0':'')+d.getHours()+':'+(d.getMinutes()<10?'0':'')+d.getMinutes()}
+function durText(id){
+  var st=S.starts[id]; if(!st) return '';
+  var mins=Math.max(0,Math.floor(((S.ends[id]||Date.now())-st)/60000));
+  return mins>=60?Math.floor(mins/60)+'h'+(mins%60<10?'0':'')+(mins%60):mins+' min';
+}
+function statusBits(m){
+  var st=S.starts[m.id]; if(!st) return '';
+  return '<span title="'+(S.ends[m.id]?'Durée du match':'Match en cours')+'">▶ '+hm(st)+' · <span class="dur" data-dur="'+esc(m.id)+'">'+durText(m.id)+'</span></span>';
+}
+function tod(ms){var d=new Date(ms);return d.getHours()*60+d.getMinutes()+d.getSeconds()/60}
+function anyStartGlobal(){return Object.keys(S.starts).length>0}
+function poolEst(P){
+  var m=P.ms[P.ms.length-1];if(!m)return {e:0,d:0};
+  var dur=Math.max(5,toInt(S.meta.dur,45)),sl=dur+Math.max(0,toInt(S.meta.pause,0)),t0=parseTime(S.meta.start);
+  var pe=t0+m.slot*sl+dur,e;
+  if(S.ends[m.id])e=tod(S.ends[m.id]);
+  else if(S.starts[m.id])e=tod(S.starts[m.id])+dur;
+  else{var sh=0;P.ms.forEach(function(x){if(S.starts[x.id])sh=Math.max(sh,tod(S.starts[x.id])-(t0+x.slot*sl))});e=parseTime(m.time)+dur+sh}
+  return {e:e,d:Math.round(e-pe)};
+}
+function terSelect(id){
+  var n=Math.max(5,toInt(S.meta.courts,5)),o='<option value="">Terrain</option>',i,cur=S.terrains[id]||'';
+  for(i=1;i<=n;i++)o+='<option value="T'+i+'"'+(cur==='T'+i?' selected':'')+'>T'+i+'</option>';
+  return '<select class="ter" data-ter="'+esc(id)+'" data-fk="ter-'+esc(id)+'" aria-label="Terrain">'+o+'</select>';
+}
+function matchCard(m,short){
+  function side(id,label,sc,key,ref){
+    var win=m.res&&m.res.w===id&&id;
+    var veil=veilRef(m,ref);
+    var pop=!!(drawAnim&&drawAnim.last===ref&&ref);
+    if(veil)return '<div class="mt veil" data-ref="'+esc(ref)+'"><span class="nm">&nbsp;</span></div>';
+    var nm=id?'<span class="seed" title="Rang / tête de série">'+seedTag(id)+'</span><span class="nm">'+esc(pairLabel(id))+'</span>':'<span class="nm">'+esc(label||'À déterminer')+'</span>';
+    var dis=!(m.a&&m.b);
+    var stp=function(d,l){return '<button type="button" class="stp" '+(dis?'disabled ':'')+'data-step="'+esc(m.id)+'" data-side="'+key+'" data-d="'+d+'" aria-label="'+(d>0?'Un jeu de plus':'Un jeu de moins')+'">'+l+'</button>'};
+    return '<div class="mt'+(win?' win':'')+(id?'':' ph')+(pop?' pop':'')+'"'+(ref?' data-ref="'+esc(ref)+'"':'')+'>'+nm+stp(-1,'−')+'<input class="sc'+(m.tie?' err':'')+'" inputmode="numeric" maxlength="2" '+(dis?'disabled ':'')+
+      'data-sc="'+esc(m.id)+'" data-side="'+key+'" data-fk="sc-'+esc(m.id)+key+'" aria-label="Jeux '+esc(id?pairLabel(id):label||'')+'" value="'+esc(sc==null?'':sc)+'">'+stp(1,'+')+'</div>';
+  }
+  var done=!!m.res,live=!done&&!!S.starts[m.id];
+  var stc=done?'done':live?'live':'todo';
+  return '<div class="match '+stc+'"><div class="mh"><label><input type="checkbox" data-start="'+esc(m.id)+'" data-fk="st-'+esc(m.id)+'" '+(S.starts[m.id]?'checked ':'')+(m.a&&m.b?'':'disabled ')+'aria-label="Match commencé"><span>'+esc(short?m.title.replace(/^Poule \d+ · /,''):m.title)+'</span></label><span class="mhr">'+terSelect(m.id)+'<span class="stl">'+(done?'✓ Terminé':live?'● En cours':'À venir')+'</span>'+(S.starts[m.id]?statusBits(m):(short?'':'<span>'+esc(m.time)+'</span>'))+'</span></div>'+
+    side(m.a,m.la,m.ra,'a',m.ia)+side(m.b,m.lb,m.rb,'b',m.ib)+'</div>';
+}
+function opt(v,cur,label){return '<option value="'+esc(v)+'"'+(String(v)===String(cur)?' selected':'')+'>'+esc(label==null?v:label)+'</option>'}
+
+function viewAccueil(){
+  var M=S.meta,out='';
+  out+='<div><h2>Configuration du tournoi</h2><div class="sub">Réglages de départ. Tout le reste (poules, tableaux, points, planning) se calcule à partir d\'ici.</div></div>';
+  out+='<section class="card"><h3>Le tournoi</h3><div class="row" style="margin-top:12px">'+
+   '<label class="f">Catégorie<select data-meta="level">'+LEVELS.map(function(l){return opt(l,M.level)}).join('')+'</select></label>'+
+   '<label class="f">Genre<select data-meta="gender">'+GENDERS.map(function(l){return opt(l,M.gender)}).join('')+'</select></label>'+
+   '<label class="f">Date<input type="date" data-meta="date" value="'+esc(M.date)+'"></label></div>'+
+   '<div class="row" style="margin-top:12px"><label class="f" style="flex:1 1 100%">Nom du tournoi (automatique)<input value="'+esc(tName())+'" readonly disabled></label>'+
+   '<label class="f" style="flex:1 1 100%">Format de jeu<input value="'+esc(M.fmtCode+' : '+M.format)+'" readonly disabled></label></div></section>';
+  out+='<section class="card"><h3>Horaires et terrains</h3><div class="row" style="margin-top:12px">'+
+   '<label class="f">Heure de début<input data-meta="start" value="'+esc(M.start)+'" placeholder="9h30"></label>'+
+   '<label class="f">Durée d\'un match (min)<input type="number" min="10" step="5" data-meta="dur" value="'+esc(M.dur)+'"></label>'+
+   '<label class="f">Nombre de terrains<input type="number" min="1" max="20" data-meta="courts" value="'+esc(M.courts)+'"></label>'+
+   '<label class="f">Pause entre deux matchs (min)<input type="number" min="0" max="60" step="5" data-meta="pause" value="'+esc(M.pause)+'"></label></div></section>';
+  out+='<section class="card"><h3>Équipes, poules et qualifiés</h3><div class="row" style="margin-top:12px">'+
+   '<label class="f">Nombre d\'équipes<input type="number" min="4" max="40" data-meta="teams" value="'+esc(M.teams)+'"></label>'+
+   '<label class="f">Nombre de poules<input type="number" min="1" max="16" data-meta="poules" value="'+esc(M.poules)+'"></label>'+
+   '<label class="f">Têtes de série<input type="number" min="0" max="40" data-meta="seeds" value="'+esc(M.seeds)+'"></label>'+
+   (toInt(M.seeds,0)>0?'<label class="f">Les têtes de série<select data-meta="seedMode">'+opt('pool',M.seedMode||'pool','Jouent les poules')+opt('tableau',M.seedMode||'pool','Entrent dans le tableau')+'</select></label>':'')+
+   (M.seedMode==='tableau'&&toInt(M.seeds,0)>0?(seedRounds(toInt(M.seeds,0),toInt(M.qualified,0)).length?'<label class="f">Tour d\'entrée des têtes de série<select data-meta="seedRound">'+seedRounds(toInt(M.seeds,0),toInt(M.qualified,0)).map(function(E){return opt(E,R.E||toInt(M.seedRound,0),roundName(E))}).join('')+'</select></label>':''):'')+
+   '<label class="f">Paires qualifiées<select data-meta="qualified">'+[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16].map(function(q){return opt(q,M.qualified)}).join('')+'</select></label></div>'+
+   '<div class="row" style="margin-top:12px"><label class="f">Placement des paires non têtes de série<select data-meta="drawMode">'+opt('serpentin',M.drawMode,'Serpentin (par rang)')+opt('tirage',M.drawMode,'Tirage au sort')+'</select></label>'+
+   '<label class="f">Paires non qualifiées<select data-meta="classMode">'+opt('rank',M.classMode,'Classement des poules')+opt('auto',M.classMode,'Automatique')+opt('play',M.classMode,'Matchs de classement')+'</select></label></div>';
+  if(M.drawMode==='tirage')out+='<div style="margin-top:12px"><button class="btn" data-act="redraw">Refaire le tirage au sort</button> <span class="sub">Les têtes de série restent placées en serpentin, les autres paires sont tirées au sort.</span></div>';
+  out+='</section>';
+  /* synthèse */
+  out+='<section class="card"><h3>Ce que donne cette configuration</h3><div style="margin-top:8px" class="stack">';
+  if(R.errors.length)R.errors.forEach(function(e){out+='<div class="notice warn">'+esc(e)+'</div>'});
+  if(R.ok){
+    var sz=R.pool.map(function(P){return P.ids.length});
+    out+='<div><b>'+R.N+' paires</b> sur '+esc(M.teams)+' prévues · <b>'+R.G+' poule'+(R.G>1?'s':'')+'</b> ('+sz.join(', ')+' paires) · <b>'+R.Q+' qualifiés</b> : '+R.k+' par poule'+(R.r>0?' + '+(R.r>1?'les '+R.r+' meilleurs ':'le meilleur ')+tierName(R.k+1)+' (à la différence de jeux)':'')+'.</div>';
+    if(R.seedTab)out+='<div><b>'+R.Sn+' têtes de série</b> exemptées de poule : elles entrent directement en '+roundName(R.E).toLowerCase()+' (TS1 en bas du tableau, TS2 en haut'+(R.Sn>2?', puis TS3 et TS4 au milieu':'')+')'+(R.prelim?', les qualifiés des poules jouent d\'abord un tour de barrage.':'.')+'</div>';
+    out+='<div>Non qualifiés ('+R.M2+') : '+(R.M2<1?'aucun.':R.classPlay?'matchs de classement pour les places '+(R.Qe+1)+' à '+R.N+'.':'classés selon leurs résultats de poule.')+'</div>';
+    out+='<div>Matchs : '+R.list.length+' ('+R.list.filter(function(m){return m.kind==='pool'}).length+' en poules, '+R.list.filter(function(m){return m.kind==='ko'}).length+' en tableaux).</div>';
+    R.notes.forEach(function(n){out+='<div class="notice warn">'+esc(n)+'</div>'});
+  }
+  if(R.N<toInt(M.teams,0))out+='<div class="notice">'+(toInt(M.teams,0)-R.N)+' paire(s) restent à saisir dans l\'onglet Inscriptions.</div>';
+  out+='</div></section>';
+  /* barème */
+  var tb=currentTable();
+  out+='<section class="card"><h3>Barème de points '+esc(M.level)+(PTS[M.level]&&!Array.isArray(PTS[M.level])&&PTS[M.level].F?' · '+esc(M.gender==='Dames'?'dames':'messieurs'):'')+'</h3><p class="sub" style="margin:4px 0 12px">Barème FFT 2026/2027'+(tb.col?' pour les tournois de '+tb.col+' paires (tu en as '+(R.N||M.teams)+')':'')+', repris d\'une source indicative (padeltournoimanager.fr, d\'après le chapitre II du règlement FFT) : à vérifier avec le règlement officiel.'+(M.gender==='Mixte'&&PTS[M.level]&&PTS[M.level].F?' Le barème dames et messieurs n\'est distinct qu\'à partir du P500 ; pour le mixte, celui des messieurs est appliqué, à vérifier.':'')+'</p>';
+  var upto=Math.max(R.N,Math.min(tb.arr.length,16));
+  out+='<label style="display:flex;gap:8px;align-items:center;margin-bottom:10px;cursor:pointer"><input type="checkbox" style="width:auto" data-custompts="1" data-fk="cpt"'+(S.customPoints?' checked':'')+'> Utiliser un barème personnalisé</label>';
+  out+='<div class="scroll"><table style="max-width:360px"><thead><tr><th>Place</th><th>Points</th></tr></thead><tbody>';
+  for(var pl=1;pl<=upto;pl++){
+    out+='<tr><td class="num">'+pl+'</td><td>'+(S.customPoints?'<input type="number" data-cp="'+(pl-1)+'" data-fk="cp-'+pl+'" value="'+esc(S.customPoints[pl-1]==null?pointsFor(pl):S.customPoints[pl-1])+'" style="width:90px">':'<span class="pts" style="font-size:16px">'+pointsFor(pl)+'</span>')+'</td></tr>';
+  }
+  out+='</tbody></table></div></section>';
+  return out;
+}
+
+function viewInscriptions(){
+  var M=S.meta,out='';
+  if(S.demo) out+='<div class="notice"><b>Données d\'exemple.</b></div>';
+  out+='<section class="card"><div class="row" style="justify-content:space-between;align-items:center"><div><h2>Inscriptions</h2></div>'+
+   '<div style="flex:none;display:flex;gap:6px;flex-wrap:wrap"><button class="btn" data-act="sort-pairs">Trier par poids</button><button class="btn primary" data-act="add-pair">Ajouter une paire</button></div></div>';
+  var noRank=S.pairs.filter(function(p){return isActive(p)&&(!num(p.a.classement)||!num(p.b.classement))}).length;
+  if(noRank) out+='<div class="notice warn" style="margin-top:12px">'+noRank+' paire'+(noRank>1?'s ont':' a')+' un classement manquant : le poids de paire est faussé.</div>';
+  out+='<div class="scroll" style="margin-top:12px"><table><thead><tr><th></th><th>Rang</th><th>Nom</th><th>Prénom</th><th>Naissance</th><th>Licence</th><th>Club</th><th>Classement</th><th>Courriel</th><th>Portable</th><th>Poids</th><th></th></tr></thead><tbody>';
+  S.pairs.forEach(function(p,i){
+    ['a','b'].forEach(function(k,j){
+      var pl=p[k];
+      function inp(f,w){return '<td><input data-pi="'+i+'" data-pp="'+k+'" data-f="'+f+'" data-fk="in-'+p.id+k+f+'" value="'+esc(pl[f])+'"'+(w||'')+'></td>'}
+      var sd=R.by[p.id].seed;
+      out+='<tr data-prow="'+i+'" data-pj="'+j+'"'+(j===0?' class="pairsep"':'')+'>'+(j===0?'<td class="dhc" rowspan="2"><span class="dh" draggable="true" data-pdrag="'+i+'" title="Glisser pour déplacer la paire">⠿</span><button type="button" class="mv" data-act="pmv-up" data-i="'+i+'" aria-label="Monter"'+(i===0?' disabled':'')+'>▲</button><button type="button" class="mv" data-act="pmv-dn" data-i="'+i+'" aria-label="Descendre"'+(i===S.pairs.length-1?' disabled':'')+'>▼</button></td>':'')+(j===0?'<td class="num pos" rowspan="2">'+(sd?sd:'')+(sd&&sd<=R.nSeeds?'<div class="seed" style="display:block;margin-top:2px">TS</div>':'')+'</td>':'')+
+        inp('nom')+inp('prenom')+inp('naissance',' placeholder="AAAA-MM-JJ"')+inp('licence')+inp('club')+inp('classement',' inputmode="numeric" style="min-width:70px"')+inp('email')+inp('tel')+
+        (j===0?'<td class="num pts" rowspan="2">'+(isActive(p)?weight(p):'')+'</td><td rowspan="2"><button class="btn ghost sm danger" data-act="del-pair" data-i="'+i+'" aria-label="Supprimer la paire">Retirer</button></td>':'')+'</tr>';
+    });
+  });
+  out+='</tbody></table></div></section>';
+  out+='<section class="card"><h3>Importer des inscriptions</h3>'+
+   '<div class="row"><label class="f" style="flex-basis:260px">Fichier Excel ou CSV<input type="file" id="impfile" accept=".xlsx,.xls,.csv"></label></div>'+
+   '<label class="f" style="margin-top:12px">Ou colle ici les lignes copiées depuis Excel<textarea id="imptext" rows="4" placeholder="Rang\tNom\tPrénom\t…"></textarea></label>'+
+   '<div style="margin-top:8px"><button class="btn" data-act="import-text">Importer le texte collé</button> <span class="sub">'+esc(importMsg)+'</span></div></section>';
+  return out;
+}
+
+function needOk(){
+  if(R.ok)return '';
+  return '<div class="notice warn"><b>Configuration à corriger.</b><br>'+R.errors.map(esc).join('<br>')+'<br><button class="btn sm" style="margin-top:8px" data-tab="accueil">Aller à la configuration</button></div>';
+}
+
+function viewPoules(){
+  if(!R.ok) return needOk();
+  var out='<div class="row" style="align-items:center;gap:8px;flex-wrap:nowrap"><div style="flex:3 1 200px;min-width:0"><h2 style="font-size:18px;display:inline;margin-right:.6em">Poules</h2><span class="sub" style="font-size:12px">'+(allLast?'<b style="color:var(--court)">Fin estimée de toutes les poules : '+fmtTime(lastAll)+'.</b> ':'')+(R.manual?'<b>Tirage modifié à la main.</b> ':'')+'</span></div>'+
+   '<div style="flex:none;display:flex;gap:6px;flex-wrap:wrap">'+(confirmReset?'<span class="notice bad" style="padding:4px 10px;margin:0"><b>Remettre tous les résultats des poules à 0 ?</b> <button class="btn sm danger" data-act="reset-poules-yes">Oui, remettre à 0</button> <button class="btn sm" data-act="reset-poules-no">Annuler</button></span>':'<button class="btn sm" data-act="reset-poules">Remettre les résultats à 0</button>')+(R.manual?'<button class="btn" data-act="reset-groups">Revenir au tirage initial</button>':'')+(S.meta.drawMode==='tirage'?'<button class="btn" data-act="redraw">Refaire le tirage au sort</button>':'')+'</div></div>';
+  var est=R.pool.map(function(P){var x=poolEst(P);x.done=P.done;x.started=!!(P.ms.length&&S.starts[P.ms[P.ms.length-1].id]);return x});
+  var allLast=est.length>0&&est.every(function(x){return x.started}),lastAll=Math.max.apply(null,est.map(function(x){return x.e}));
+  var worst=-1,wd=0;est.forEach(function(x,i){if(!x.done&&x.d>wd){wd=x.d;worst=i}});
+  out+='<div class="pgrid">';
+  R.pool.forEach(function(P,gi){
+    out+='<section class="card pc"><div style="display:flex;justify-content:space-between;align-items:center;gap:6px"><h3>Poule '+(gi+1)+'</h3>'+(P.done?'<span class="pill ok">Terminée</span>':'<span class="pill">En cours</span>')+'</div><div style="margin:.25em 0">';
+    P.ids.forEach(function(id,kk){var p=R.by[id];
+      out+='<div class="pairline"><span class="pos">'+(kk+1)+'</span><span class="nm"><b>'+esc(p.p.a.nom||'—')+' <span class="rk">('+esc(p.p.a.classement||'—')+')</span> / '+esc(p.p.b.nom||'—')+' <span class="rk">('+esc(p.p.b.classement||'—')+')</span></b></span><span class="pw" title="Poids de paire">'+p.w+'</span><span class="seed">'+seedTag(id)+'</span></div>'});
+    out+='</div>';
+    var x=est[gi],estHtml;
+    if(P.done){var ends=P.ms.map(function(m){return S.ends[m.id]}).filter(Boolean);estHtml='<div class="est ok">Poule terminée'+(ends.length?' à '+hm(Math.max.apply(null,ends)):'')+'</div>'}
+    else estHtml='<div class="est'+(x.d>0?' late':'')+(gi===worst?' worst':'')+'">Fin estimée <b>'+fmtTime(Math.round(x.e))+'</b>'+(x.d>0?' <span>+'+x.d+' min</span>':'')+(gi===worst?' <span class="tag">la plus en retard</span>':'')+'</div>';
+    out+=estHtml+'<div class="stack">'+P.ms.map(function(m){return matchCard(m,true)}).join('')+'</div>';
+    out+='<div class="scroll" style="margin-top:6px"><table class="stand"><thead><tr><th></th><th>Classement</th><th class="num" title="Victoires">V</th><th class="num" title="Défaites">D</th><th class="num" title="Jeux gagnés">JG</th><th class="num" title="Jeux perdus">JP</th><th class="num">Diff</th></tr></thead><tbody>'+
+      P.rows.map(function(r,kk){
+        var q=kk<R.k,b=R.r>0&&kk===R.k;
+        return '<tr'+(P.done&&q?' style="font-weight:600"':'')+'><td class="num">'+(kk+1)+'</td><td>'+esc(pairLabel(r.id))+(P.done&&b?' <span class="pill" title="Qualifié seulement parmi les meilleurs '+tierName(R.k+1)+'">M'+tierName(R.k+1)+'</span>':'')+'</td><td class="num">'+r.w+'</td><td class="num">'+r.l+'</td><td class="num">'+r.pf+'</td><td class="num">'+r.pa+'</td><td class="num"><b>'+(r.pf-r.pa>0?'+':'')+(r.pf-r.pa)+'</b></td></tr>'}).join('')+'</tbody></table></div></section>';
+  });
+  return out+'</div>';
+}
+
+function sideCol(side,r,ms,hasPrev,nr){
+  var n=ms.length,body='',cls;
+  function unit(m,c){return '<div class="unit '+c+'">'+matchCard(m)+'</div>'}
+  if(n>=2){
+    var c1=side==='l'?'sr':'sl';
+    for(var i=0;i<n;i+=2)body+='<div class="pairbox '+(side==='l'?'bl':'br2')+'">'+unit(ms[i],c1)+unit(ms[i+1],c1)+'</div>';
+  }else{
+    cls=side==='l'?'sr'+(hasPrev?' sl':''):'sl'+(hasPrev?' sr':'');
+    body=unit(ms[0],cls);
+  }
+  var kk0=nr-1-r;
+  return '<div class="brc"><h3 data-act="ko-filter" data-k="'+kk0+'" class="'+(koFilter===kk0?'on':'')+'" title="Afficher seulement ce tour">'+roundName(R.mainRounds[r].length*2)+'</h3><div class="body">'+body+'</div></div>';
+}
+function viewClassif(){return viewTableau('classif')}
+function viewTableau(part){
+  if(!R.ok) return needOk();
+  var onlyCls=part==='classif',viewer=role==='view';
+  var bar='';
+  if(drawAnim){
+    var lr=drawAnim.last,lp=lr&&R.slotPair(lr);
+    bar='<div class="drawbar"><div class="dcount">TIRAGE AU SORT · '+drawAnim.n+' / '+drawAnim.seq.length+'</div><div class="dname">'+(lr?esc(lp?pairLabel(lp):R.slotLabel(lr)):'Les paires sont mélangées…')+'</div>'+(lr&&lp?'<div class="dsub">'+esc(R.slotLabel(lr).replace(/ \(prov\.\)/,''))+'</div>':'')+'<button class="btn sm" data-act="draw-skip">Passer</button></div>';
+  }
+  var out='<div class="bz'+(onlyCls?' clsonly':' mainonly')+'"><div class="row" style="align-items:center"><div style="flex:3 1 300px"><h2 style="font-size:1.5em">'+(onlyCls?'Matchs de classement':'Tableau final')+'</h2>'+(koFilter!==null&&!onlyCls?'<button class="btn sm" data-act="ko-filter" data-k="'+koFilter+'" style="margin-left:12px;vertical-align:middle">← Tableau complet</button>':'')+'</div>'+(onlyCls?'':'<div style="flex:none;display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end">'+(R.seedTab&&R.Sn>=4?'<button class="btn" data-act="ts-draw"'+(hasKoScores()?' disabled':'')+'>'+(S.tsDrawn?'Refaire le placement TS':'Placement TS')+'</button>':'')+(confirmKo?'<span class="notice bad" style="padding:4px 10px;margin:0"><b>Tout remettre à 0 (scores, matchs lancés et tirage au sort) ?</b> <button class="btn sm danger" data-act="reset-ko-yes">Oui</button> <button class="btn sm" data-act="reset-ko-no">Annuler</button></span>':'<button class="btn" data-act="reset-ko">Remettre le tableau à 0</button>')+'<button class="btn primary" data-act="draw"'+(drawAnim?' disabled':'')+'>'+(drawnOK()?'Refaire le tirage au sort':'Lancer le tirage au sort')+'</button></div>')+'</div>'+bar+(!viewer&&!drawAnim&&!drawnOK()?'<div class="notice">Le tirage au sort du tableau final n\'a pas encore été effectué.'+(R.seedTab&&R.Sn>=4&&!S.tsDrawn?' Le placement des TS3 et TS4 (« Placement TS ») se fait séparément.':'')+(onlyCls?'':' Appuie sur « Lancer le tirage au sort ».')+'</div>':'');
+  var rounds=R.mainRounds,nr=rounds.length,cols='',r;
+  var hid=function(k){return koFilter!==null&&koFilter!==k&&koFilter<nr?';display:none':''};
+  for(r=0;r<nr-1;r++)cols+='<div class="brw" style="--o:'+(r*10)+hid(nr-1-r)+'">'+sideCol('l',r,rounds[r].slice(0,rounds[r].length/2),r>0,nr)+'</div>';
+  cols+='<div class="brw" style="--o:'+((nr-1)*10)+hid(0)+'"><div class="brc"><h3 data-act="ko-filter" data-k="0" class="'+(koFilter===0?'on':'')+'" title="Afficher seulement la finale">Finale</h3><div class="body"><div class="unit'+(nr>1?' sl sr':'')+'">'+matchCard(rounds[nr-1][0])+'</div></div></div></div>';
+  for(r=nr-2;r>=0;r--)cols+='<div class="brw" style="--o:'+(r*10+1)+hid(nr-1-r)+'">'+sideCol('r',r,rounds[r].slice(rounds[r].length/2),r>0,nr)+'</div>';
+  if(!onlyCls&&R.prelim&&R.prelim.length)out+='<div class="card" style="margin-bottom:10px"><h3>Tour de barrage (qualifiés des poules)</h3><div class="row" style="gap:10px;margin-top:8px">'+R.prelim.map(function(m){return '<div style="flex:1 1 260px">'+matchCard(m)+'</div>'}).join('')+'</div></div>';
+  if(!onlyCls)out+='<div class="scroll"><div class="br'+(koFilter!==null?' kof kof'+(koFilter===0?'1':'2'):'')+'" style="'+(koFilter!==null?'':'min-width:'+((2*nr-1)*150)+'px')+'">'+cols+'</div></div>';
+  var secs=R.sections.filter(function(s){return s.start>1});
+  if(secs.length&&onlyCls){
+    var ordn=function(n){return n+'e'};
+    out+='<div class="clsboard">';
+    secs.forEach(function(sc){
+      var ms=sc.matches;
+      if(ms.length===1){
+        out+='<section class="cb cb1"><h3 class="cbh">Match pour la '+ordn(sc.start)+' place</h3><div class="cbm">'+matchCard(ms[0])+'</div></section>';
+      }else if(ms.length===4){
+        out+='<section class="cb cb4"><h3 class="cbh">Places '+sc.start+' à '+(sc.start+3)+'</h3><div class="c58"><div class="c58a"><div class="cbs">Demi-finales de classement</div>'+matchCard(ms[0])+matchCard(ms[1])+'</div><div class="c58x" aria-hidden="true">➜</div><div class="c58b"><div class="cbs">Match pour la '+ordn(sc.start)+' place</div>'+matchCard(ms[2])+'<div class="cbs">Match pour la '+ordn(sc.start+2)+' place</div>'+matchCard(ms[3])+'</div></div></section>';
+      }else{
+        var cl=Math.min(ms.length,4);
+        out+='<section class="cb"><h3 class="cbh">'+esc(sc.name)+'</h3><div class="csg" style="grid-template-columns:repeat('+cl+',minmax(0,1fr))">'+ms.map(function(m){return matchCard(m)}).join('')+'</div></section>';
+      }
+    });
+    out+='</div>';
+  }
+  if(!R.classPlay&&R.M2>0&&onlyCls)out+='<div class="sub">Les places '+(R.Qe+1)+' à '+R.N+' sont données par le classement des poules (victoires, défaites, différence de jeux ; en cas d\'égalité parfaite dans une même poule, confrontation directe ; places ex aequo entre poules). Voir l\'onglet Classement.</div>';
+  return out+'</div>';
+}
+
+function viewClassement(){
+  if(!R.ok) return needOk();
+  var out='<div class="row" style="align-items:center"><div style="flex:3 1 300px"><h2>Classement final</h2><div class="sub">Points attribués à chaque joueur de la paire : barème '+esc(S.meta.level)+(PTS[S.meta.level]&&!Array.isArray(PTS[S.meta.level])&&PTS[S.meta.level].F?' '+(S.meta.gender==='Dames'?'dames':'messieurs'):'')+(S.customPoints?' personnalisé':', saison 2026/2027')+'.</div></div><div style="flex:none"><button class="btn" data-act="export-xlsx">Exporter Excel</button></div></div>';
+  out+='<section class="card"><div class="scroll"><table class="podium"><thead><tr><th>Place</th><th>Joueurs</th><th>Club</th><th class="num">Points</th></tr></thead><tbody>';
+  for(var pl=1;pl<=R.N;pl++){
+    var id=R.places[pl], p=id&&R.by[id];
+    var dp=R.dispPlace[pl]||pl;
+    out+='<tr'+(pl<=3?' class="medal m'+pl+'"':'')+'><td class="pl">'+dp+'</td><td>'+(p?'<b>'+esc(p.p.a.prenom+' '+p.p.a.nom+' · '+p.p.b.prenom+' '+p.p.b.nom)+'</b>':'<span class="muted">En attente</span>')+'</td><td>'+(p?esc(p.p.a.club):'')+'</td><td class="num pts">'+(p?pointsFor(dp):'')+'</td></tr>';
+  }
+  return out+'</tbody></table></div></section>';
+}
+
+function endEst(m){
+  var d=Math.max(5,toInt(S.meta.dur,45));
+  if(S.ends[m.id])return hm(S.ends[m.id])+' ✓';
+  if(S.starts[m.id])return fmtTime(Math.round(tod(S.starts[m.id])+d));
+  return fmtTime(parseTime(m.time)+d);
+}
+function viewPlanning(){
+  if(!R.ok) return needOk();
+  var out='<div class="row" style="align-items:center"><div style="flex:3 1 300px"><h2>Planning des matchs</h2></div>'+'<div style="flex:none;display:flex;gap:6px;flex-wrap:wrap">'+(S.order?'<button class="btn primary" data-act="order-tpl">Enregistrer comme ordre par défaut</button><button class="btn" data-act="order-auto">Annuler mes changements</button>':'')+(ORDTPL?'<button class="btn" data-act="order-tpl-clear" title="Supprime l\'ordre par défaut personnalisé">Revenir à l\'ordre d\'origine</button>':'')+'</div>'+'</div>';
+  var byId={};R.list.forEach(function(m){byId[m.id]=m});
+  out+='<section class="card"><div class="scroll"><table id="plantbl"><thead><tr><th></th><th>Heure</th><th>Commencé</th><th>Fin estimée</th><th>Terrain</th><th>Match</th><th>Paire A</th><th>Paire B</th><th>Score</th><th>Durée</th></tr></thead><tbody>';
+  var prev=-1;
+  R.order.forEach(function(id,oi){
+    var m=byId[id];
+    var A=veilRef(m,m.ia)?'Tirage à effectuer':m.a?pairLabel(m.a):(m.la||'À déterminer'), B=veilRef(m,m.ib)?'Tirage à effectuer':m.b?pairLabel(m.b):(m.lb||'À déterminer');
+    out+='<tr data-oid="'+esc(m.id)+'"'+(m.slot!==prev?' class="pairsep"':'')+'><td class="dhc"><span class="dh" draggable="true" data-drag="'+esc(m.id)+'" title="Glisser pour déplacer">⠿</span><button type="button" class="mv" data-act="mv-up" data-id="'+esc(m.id)+'" aria-label="Monter"'+(oi===0?' disabled':'')+'>▲</button><button type="button" class="mv" data-act="mv-dn" data-id="'+esc(m.id)+'" aria-label="Descendre"'+(oi===R.order.length-1?' disabled':'')+'>▼</button></td><td data-l="Heure"><input data-time="'+esc(m.id)+'" data-fk="tm-'+esc(m.id)+'" style="width:84px;min-width:0" value="'+esc(m.time)+'"></td><td data-l="Commencé">'+
+      (m.a&&m.b?'<input type="checkbox" data-start="'+esc(m.id)+'" data-fk="pst-'+esc(m.id)+'" '+(S.starts[m.id]?'checked':'')+'> <input data-startt="'+esc(m.id)+'" data-fk="pt2-'+esc(m.id)+'" style="width:64px;min-width:0" placeholder="début" value="'+(S.starts[m.id]?esc(hm(S.starts[m.id])):'')+'">':'')+'</td><td class="endest" data-l="Fin estimée"><b>'+esc(endEst(m))+'</b></td><td data-l="Terrain">'+terSelect(m.id)+'</td><td class="mtitle">'+esc(m.title)+'</td><td data-l="Paire A"'+(m.a?'':' class="muted"')+'>'+esc(A)+'</td><td data-l="Paire B"'+(m.b?'':' class="muted"')+'>'+esc(B)+'</td><td data-l="Score">'+
+      (m.a&&m.b?'<input class="sc" style="width:46px;min-width:0;text-align:center" data-sc="'+esc(m.id)+'" data-side="a" data-fk="pa-'+esc(m.id)+'a" value="'+esc(m.ra)+'"> – <input class="sc" style="width:46px;min-width:0;text-align:center" data-sc="'+esc(m.id)+'" data-side="b" data-fk="pa-'+esc(m.id)+'b" value="'+esc(m.rb)+'">':'')+'</td><td class="num" data-l="Durée"><span class="dur" data-dur="'+esc(m.id)+'">'+durText(m.id)+'</span></td></tr>';
+    prev=m.slot;
+  });
+  return out+'</tbody></table></div></section>';
+}
+
+/* ---------- Mes Pronos ---------- */
+var PR={rows:[],me:null,sub:'g1',err:'',timer:null,picks:{},pushT:null,sig:'',loadedFor:null};
+var PRLOC={};
+function prTest(){return !window.padelApi}
+function prLocGet(t){try{return JSON.parse(localStorage.getItem('padel-test-votes-'+t)||'{}')}catch(e){return PRLOC[t]||{}}}
+function prLocSet(t,o){PRLOC[t]=o;try{localStorage.setItem('padel-test-votes-'+t,JSON.stringify(o))}catch(e){}}
+function prApi(path,o){
+  if(window.padelApi)return window.padelApi(path,o);
+  return new Promise(function(res){
+    var q=path.split('?')[0].split('/'),t=decodeURIComponent(q[1]||''),db=prLocGet(t);
+    if(q[0]==='votes'){var dv=decodeURIComponent((path.split('dev=')[1]||'')),me='L'+dv.slice(0,12);res({rows:Object.keys(db).map(function(h){return db[h]}),me:me});return}
+    var h=q[0]==='vote'&&o&&o.method==='DELETE'?decodeURIComponent(q[2]):'L'+decodeURIComponent(q[2]||'').slice(0,12);
+    if(o&&o.method==='DELETE'){delete db[h];prLocSet(t,db);res({ok:true});return}
+    var nm=String((o.body&&o.body.name)||'').slice(0,24);db[h]={h:h,name:nm,picks:(o.body&&o.body.picks)||{},up:Date.now()};prLocSet(t,db);res({ok:true,h:h,picks:db[h].picks});
+  });
+}
+function prFake(){
+  var db=prLocGet(cur),byId={};R.list.forEach(function(m){byId[m.id]=m});var sp=prSpecials();
+  for(var i=1;i<=12;i++){
+    var picks={};
+    R.list.forEach(function(m){if(m.a&&m.b&&!(S.starts&&S.starts[m.id])&&!scoreOf(m.id)&&Math.random()<.85)picks[m.id]={w:Math.random()<.5?'a':'b',a:m.a,b:m.b}});
+    sp.forEach(function(x){if(x.ids.length)picks[x.k]={p:x.ids[Math.floor(Math.random()*Math.min(x.ids.length,4))]}});
+    db['F'+i]={h:'F'+i,name:'Testeur '+i,picks:picks,up:Date.now()};
+  }
+  prLocSet(cur,db);PR.dirty=true;prLoad();
+}
+function prOn(){return !!(cur&&(window.padelApi||role==='edit'))}
+function prDev(){try{var d=localStorage.getItem('padel-dev');if(!d){d='';for(var i=0;i<24;i++)d+='abcdefghijklmnopqrstuvwxyz0123456789'.charAt(Math.floor(Math.random()*36));localStorage.setItem('padel-dev',d)}return d}catch(e){return PR._d||(PR._d=Math.random().toString(36).slice(2,14).padEnd(10,'x'))}}
+function prName(){try{return localStorage.getItem('padel-pseudo')||''}catch(e){return PR._n||''}}
+function prSetName(n){PR._n=n;try{localStorage.setItem('padel-pseudo',n)}catch(e){}}
+function prLoad(){
+  if(!prOn())return;
+  var id=cur;
+  prApi('votes/'+encodeURIComponent(id)+'?dev='+encodeURIComponent(prDev())).then(function(r){
+    if(cur!==id)return;
+    var sg=JSON.stringify(r.rows);PR.err='';PR.me=r.me;
+    if(!PR.pushT){var mine=r.rows.filter(function(x){return x.h===r.me})[0];PR.picks=mine?mine.picks:(PR.loadedFor===id?PR.picks:{})}
+    PR.loadedFor=id;
+    if(sg!==PR.sig||PR.dirty){PR.sig=sg;PR.rows=r.rows;PR.dirty=false;if(tab==='pronos'&&!/^(INPUT|SELECT|TEXTAREA)$/.test(document.activeElement.tagName))render()}
+  },function(){PR.err='Les pronostics sont indisponibles pour le moment.';if(tab==='pronos')render()});
+}
+function prWatch(){
+  if(cur&&PR.loadedFor&&PR.loadedFor!==cur){PR.picks={};PR.rows=[];PR.sig='';PR.me=null;PR.loadedFor=null}
+  if(tab==='pronos'&&prOn()){if(!PR.timer){prLoad();PR.timer=setInterval(prLoad,10000)}}
+  else if(PR.timer){clearInterval(PR.timer);PR.timer=null}
+}
+function prPush(){
+  clearTimeout(PR.pushT);
+  PR.pushT=setTimeout(function(){
+    PR.pushT=null;var n=prName();if(!n||!prOn())return;
+    prApi('vote/'+encodeURIComponent(cur)+'/'+encodeURIComponent(prDev()),{method:'PUT',body:{name:n,picks:PR.picks}}).then(function(r){PR.picks=r.picks||PR.picks;PR.dirty=true;prLoad()},function(){PR.err="Ton prono n'a pas pu être enregistré. Réessaie.";render()});
+  },350);
+}
+function prLocked(m){return !!(S.starts&&S.starts[m.id])||!!scoreOf(m.id)}
+function prAnyStarted(){var k;for(k in (S.starts||{}))if(S.starts[k])return true;for(k in (S.scores||{}))if(scoreOf(k))return true;return false}
+function prValid(p,m){return !!(p&&m&&m.a&&m.b&&p.a===m.a&&p.b===m.b)}
+function prWt(id){var p=R.by[id];return p?' <span class="sub" style="white-space:nowrap">('+p.w+')</span>':''}
+function prLab(id){return esc(pairLabel(id))+prWt(id)}
+function prPts(p,m){
+  if(!prValid(p,m))return null;var sc=scoreOf(m.id);if(!sc||!finished(sc))return null;
+  return p.w===(sc[0]>sc[1]?'a':'b')?1:0;
+}
+function prSpecials(){
+  var L=[{k:'W',title:'Vainqueur du tournoi',ids:R.order.length&&R.all?R.all.filter(function(x){return x.act}).sort(function(x,y){return x.w-y.w}).map(function(x){return x.id}):[],win:R.places&&R.places[1]||null}];
+  (R.pool||[]).forEach(function(P,i){L.push({k:'G'+(i+1),title:'Vainqueur de la poule '+(i+1),ids:P.ids.slice().sort(function(x,y){return R.by[x].w-R.by[y].w}),win:P.done&&P.rows[0]?P.rows[0].id:null})});
+  return L;
+}
+function prStats(){
+  var by={};R.list.forEach(function(m){by[m.id]=m});var sp={};prSpecials().forEach(function(x){sp[x.k]=x});
+  return PR.rows.map(function(r){
+    var pts=0,n=0,ok=0;
+    Object.keys(r.picks||{}).forEach(function(id){
+      var p=r.picks[id];
+      if(sp[id]){if(sp[id].ids.indexOf(p.p)<0||!sp[id].win)return;n++;if(p.p===sp[id].win){pts++;ok++}return}
+      var m=by[id];if(!m)return;var g=prPts(p,m);if(g==null)return;n++;pts+=g;ok+=g;
+    });
+    return {h:r.h,name:r.name,pts:pts,ok:ok,n:n};
+  }).sort(function(x,y){return y.pts-x.pts||x.n-y.n||x.name.localeCompare(y.name)});
+}
+function prVotes(m){
+  var na=0,nb=0;PR.rows.forEach(function(r){var p=r.picks&&r.picks[m.id];if(prValid(p,m)){if(p.w==='a')na++;else nb++}});
+  return {na:na,nb:nb,n:na+nb};
+}
+function viewPronos(){
+  if(!R.ok)return needOk();
+  var name=prName(),me=PR.picks||{},NG=(R.pool||[]).length,sub=PR.sub;
+  var subs=[];(R.pool||[]).forEach(function(P,i){subs.push(['g'+(i+1),'Poule '+(i+1)])});
+  subs.push(['ko','Tableau final'],['vainqueurs','Vainqueurs'],['classement','Classement']);
+  if(!subs.some(function(x){return x[0]===sub}))sub=subs[0][0];
+  var out='<div class="row" style="align-items:center"><div style="flex:1 1 220px"><h2 style="margin:0">Mes Pronos</h2><p class="sub" style="margin:2px 0 0"><b>1 point par bon prono</b> · fermé au lancement du match</p></div>'+(prTest()?'<div style="flex:none;display:flex;gap:6px"><button class="btn pr" data-act="pr-fake">+ 12 votants de test</button><button class="btn pr" data-act="pr-clear">Effacer les votes test</button></div>':'')+'</div>'+(prTest()?'<div class="notice warn" style="margin-top:8px">Mode test : les pronos sont enregistrés seulement sur cet appareil, pas sur le site.</div>':'')+
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;margin:10px 0 2px">'+subs.map(function(x){return '<button class="btn pr'+(sub===x[0]?' primary':'')+'" data-act="pr-sub" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div>';
+  if(PR.err)out+='<div class="notice warn">'+esc(PR.err)+'</div>';
+  out+='<section class="card"><form class="row pr" style="align-items:flex-end;gap:8px" onsubmit="return false"><label class="f" style="flex:1 1 220px">Ton pseudo<input class="pr" id="prpseudo" maxlength="24" value="'+esc(name)+'" placeholder="Ex : Kevin"></label><button type="button" class="btn primary pr" style="flex:none" data-act="pr-pseudo">'+(name?'Changer le pseudo':'Participer')+'</button></form>'+(name?'':'<p class="sub" style="margin:8px 0 0">Entre un pseudo pour pouvoir pronostiquer.</p>')+'</section>';
+  if(sub==='classement'){
+    var st=prStats(),adm=role==='edit';
+    return out+'<section class="card"><div class="scroll"><table><thead><tr><th>#</th><th>Pseudo</th><th class="num">Points</th><th class="num">Pronos notés</th>'+(adm?'<th></th>':'')+'</tr></thead><tbody>'+
+      (st.length?st.map(function(x,i){return '<tr'+(x.h===PR.me?' style="background:var(--court-soft)"':'')+'><td>'+(i+1)+'</td><td><b>'+esc(x.name)+'</b>'+(x.h===PR.me?' (toi)':'')+'</td><td class="num"><b>'+x.pts+'</b></td><td class="num">'+x.n+'</td>'+(adm?'<td><button class="btn sm danger pr" data-act="pr-del" data-h="'+esc(x.h)+'">Supprimer</button></td>':'')+'</tr>'}).join(''):'<tr><td colspan="4" class="sub">Aucun prono pour le moment.</td></tr>')+'</tbody></table></div></section>';
+  }
+  if(sub==='vainqueurs'){
+    var lk=prAnyStarted();
+    out+='<p class="sub" style="margin:10px 0 0">Pronostique le vainqueur du tournoi et celui de chaque poule (1 point chacun). Fermé dès que le premier match est lancé.</p>';
+    prSpecials().forEach(function(sp){
+      var mine=me[sp.k]&&sp.ids.indexOf(me[sp.k].p)>=0?me[sp.k].p:null,cnt={},tot=0;
+      PR.rows.forEach(function(r){var p=r.picks&&r.picks[sp.k];if(p&&sp.ids.indexOf(p.p)>=0){cnt[p.p]=(cnt[p.p]||0)+1;tot++}});
+      var show=tot>0&&(mine||lk),can=!!name&&!lk;
+      out+='<section class="card"><h3>'+esc(sp.title)+(sp.win?' · <span class="sub">vainqueur : <b>'+esc(pairLabel(sp.win))+'</b></span>':'')+'</h3><div class="scroll"><table><tbody>'+
+        sp.ids.slice().sort(function(x,y){return show?(cnt[y]||0)-(cnt[x]||0)||R.by[x].w-R.by[y].w:R.by[x].w-R.by[y].w}).map(function(id){
+          var pc=show?Math.round(100*(cnt[id]||0)/tot):0;
+          return '<tr><td style="width:46%"><button type="button" class="btn pr prp'+(mine===id?' primary':'')+'" data-act="pr-win" data-k="'+sp.k+'" data-p="'+esc(id)+'"'+(can?'':' disabled')+' style="text-align:left;width:100%">'+prLab(id)+'</button></td><td>'+(show?'<div style="display:flex;align-items:center;gap:8px"><div style="flex:1;height:10px;border-radius:5px;overflow:hidden;background:var(--line)"><i style="display:block;height:100%;width:'+pc+'%;background:var(--court)"></i></div><b style="min-width:3em;text-align:right">'+pc+' %</b></div>':'<span class="sub">Vote pour voir les %</span>')+'</td></tr>'}).join('')+'</tbody></table></div></section>';
+    });
+    return out;
+  }
+  var byId={};R.list.forEach(function(m){byId[m.id]=m});
+  var isKo=sub==='ko',ms=[];
+  if(isKo)R.order.forEach(function(id){var m=byId[id];if(m&&m.kind==='ko')ms.push(m)});
+  else{var P=(R.pool||[])[+sub.slice(1)-1];if(P)P.ms.forEach(function(m){ms.push(byId[m.id]||m)});ms.sort(function(x,y){return (x.slot-y.slot)||(x.court-y.court)})}
+  out+='<section class="card"><div class="scroll"><table id="plantbl"><thead><tr><th>Heure</th>'+(isKo?'<th>Match</th>':'')+'<th>Paire A</th><th>Paire B</th><th style="text-align:center">Score</th></tr></thead><tbody>';
+  var prev=-1;
+  ms.forEach(function(m){
+    var veil=veilRef(m,m.ia)||veilRef(m,m.ib),ok=!veil&&m.a&&m.b,lk=prLocked(m),p=ok&&prValid(me[m.id],m)?me[m.id]:null;
+    var can=ok&&!lk&&!!name,v=ok?prVotes(m):{na:0,nb:0,n:0},show=ok&&(p||lk)&&v.n>0;
+    var pa=show?Math.round(100*v.na/v.n):0,pb=show?100-pa:0;
+    function side(s){
+      if(!ok)return '<span class="sub">'+esc(veil?'Tirage à effectuer':m[s]?pairLabel(m[s]):(s==='a'?m.la:m.lb)||'À déterminer')+'</span>';
+      return '<button type="button" class="btn pr prp'+(p&&p.w===s?' primary':'')+'" data-act="pr-pick" data-m="'+esc(m.id)+'" data-side="'+s+'"'+(can?'':' disabled')+' style="text-align:left;width:100%;padding:6px 8px;line-height:1.25">'+prLab(m[s])+(show?'<br><b>'+(s==='a'?pa:pb)+' %</b>':'')+'</button>';
+    }
+    var sc=scoreOf(m.id),g=p?prPts(p,m):null,res='';
+    if(sc&&ok)res='<div style="font-size:1.55em;font-weight:800;line-height:1;white-space:nowrap">'+sc[0]+' – '+sc[1]+'</div>';
+    if(g!=null)res+='<div style="font-weight:700;color:'+(g?'var(--court)':'var(--ink2)')+'">'+(g?'+1':'0')+'</div>';
+    out+='<tr'+(m.slot!==prev?' class="pairsep"':'')+'><td data-l="Heure"><b>'+esc(m.time)+'</b></td>'+(isKo?'<td class="mtitle" data-l="Match">'+esc(m.title)+'</td>':'')+'<td data-l="Paire A">'+side('a')+'</td><td data-l="Paire B">'+side('b')+'</td><td data-l="Score" style="text-align:center;min-width:80px">'+res+'</td></tr>';
+    prev=m.slot;
+  });
+  return out+'</tbody></table></div></section>';
+}
+
+function render(){
+  if(home||!S){renderHome();return}
+  document.querySelector('.tools').style.display='';document.getElementById('tabs').style.display='';
+  R=compute(); syncSig();
+  var ae=document.activeElement, fk=ae&&ae.getAttribute&&ae.getAttribute('data-fk'), ss=null,se=null;
+  try{ss=ae.selectionStart;se=ae.selectionEnd}catch(e){}
+  var sy=window.scrollY;
+  document.body.classList.toggle('wide',tab==='accueil'||tab==='inscriptions'||tab==='pronos'||tab==='poules'||tab==='tableau'||tab==='planning'||tab==='classif'||tab==='classement');
+  document.getElementById('ttl').textContent=tName();var hb=document.getElementById('homebtn');if(hb)hb.textContent='← Les tournois';
+  document.getElementById('subttl').textContent=R.N+' paire'+(R.N>1?'s':'')+(toInt(S.meta.teams,0)?' sur '+S.meta.teams+' prévues':'');
+  var VT=['poules','tableau','classif','classement','pronos'];
+  if(role==='view'&&VT.indexOf(tab)<0)tab='poules';
+  if(tab==='pronos'&&!prOn())tab=role==='view'?'poules':'planning';
+  document.getElementById('tabs').innerHTML=TABS.filter(function(t){return t[0]==='pronos'?prOn():(role!=='view'||VT.indexOf(t[0])>=0)}).sort(function(a,b){var o=['accueil','inscriptions','poules','planning','pronos','tableau','classif','classement'];return o.indexOf(a[0])-o.indexOf(b[0])}).map(function(t){return '<button role="tab" aria-selected="'+(t[0]===tab)+'" data-tab="'+t[0]+'">'+t[1]+'</button>'}).join('');
+  var v={accueil:viewAccueil,inscriptions:viewInscriptions,poules:viewPoules,tableau:viewTableau,classement:viewClassement,planning:viewPlanning,classif:viewClassif,pronos:viewPronos}[tab]();
+  if(flash){v='<div class="notice warn">'+esc(flash)+' <button class="btn sm" data-act="flash-ok">OK</button></div>'+v}
+  if(confirmNew) v='<div class="notice bad"><b>Effacer ce tournoi et en démarrer un nouveau ?</b> Pense à faire « Sauvegarde » avant. <button class="btn sm danger" data-act="new-yes">Oui, effacer</button> <button class="btn sm" data-act="new-no">Annuler</button></div>'+v;
+  if(snapMode&&role==='view')v='<div class="notice warn" style="margin:0 0 8px">'+esc(snapNote())+'</div>'+v;
+  document.getElementById('view').innerHTML=v;
+  if(role==='view')document.querySelectorAll('#view input:not(.pr),#view select:not(.pr),#view textarea').forEach(function(x){x.disabled=true});
+  prWatch();
+  fitPoules();
+  window.scrollTo(0,sy);
+  if(fk){var el=document.querySelector('[data-fk="'+fk+'"]'); if(el){el.focus();try{el.setSelectionRange(ss,se)}catch(e){}}}
+}
+function fitPoules(){
+  var g=document.querySelector('.pgrid');if(!g)return;
+  g.style.setProperty('--pfit','1');
+  if(window.innerWidth<900)return;
+  for(var i=0;i<3;i++){
+    var cs=g.querySelectorAll('.pc'),h=0;cs.forEach(function(c){h=Math.max(h,c.getBoundingClientRect().height)});
+    var gr=g.getBoundingClientRect(),trail=document.documentElement.scrollHeight-(gr.bottom+window.scrollY);var avail=window.innerHeight-gr.top-trail-6;
+    var cur=parseFloat(g.style.getPropertyValue('--pfit'))||1,f=Math.max(.66,Math.min(1,cur*avail/h));
+    if(Math.abs(f-cur)<.005)break;g.style.setProperty('--pfit',f.toFixed(3));
+  }
+}
+var fitT=0;window.addEventListener('resize',function(){clearTimeout(fitT);fitT=setTimeout(fitPoules,120)});
+function change(){save();setTimeout(render,0)}
+
+function fmtDateShort(d){try{return d?fmtDate(d):'Date à définir'}catch(e){return d||''}}
+function renderHome(){
+  document.body.classList.remove('wide');
+  document.querySelector('.tools').style.display='none';document.getElementById('tabs').style.display='none';
+  document.getElementById('ttl').textContent='Les tournois';
+  var EDIT=role==='edit',SRC=EDIT?index.list:(role==='view'?pubList:[]);
+  document.body.classList.toggle('ro',role==='view');
+  document.getElementById('subttl').textContent=SRC.length+' tournoi'+(SRC.length>1?'s':'');
+  var SM={ok:'☁ Synchronisé : tes tournois sont disponibles sur tous tes appareils.',pending:'Synchronisation en cours…',off:'⚠ Synchronisation indisponible pour l\'instant : les tournois restent enregistrés sur cet appareil.',ro:'Lecture seule : ce compte ne peut pas partager de tournois entre appareils.'};
+  if(!EDIT)SM={ok:snapMode?snapNote():'',pending:'Chargement…',off:'Connecte-toi à ton compte Claude pour voir les tournois.',ro:''};
+  var L=SRC.slice().sort(function(a,b){if(!a.date!==!b.date)return a.date?-1:1;return (a.date||'').localeCompare(b.date||'')||a.up-b.up});
+  var dn=new Date(),todayS=dn.getFullYear()+'-'+('0'+(dn.getMonth()+1)).slice(-2)+'-'+('0'+dn.getDate()).slice(-2);
+  function catOf(e){return !e.date||e.date>todayS?'avenir':e.date===todayS?'today':'passes'}
+  var CNT={avenir:0,today:0,passes:0};L.forEach(function(e){CNT[catOf(e)]++});
+  homeTab=homeTabUser||(CNT.today?'today':'avenir');
+  var ALL=L;L=L.filter(function(e){return catOf(e)===homeTab});
+  var MOIS=['janvier','février','mars','avril','mai','juin','juillet','août','septembre','octobre','novembre','décembre'];
+  var out='<div class="bz"><div class="row" style="align-items:center"><div style="flex:3 1 260px">'+((syncState==='ok'&&!snapMode)||!SM[syncState]?'':'<div class="sub">'+SM[syncState]+'</div>')+'</div></div>';
+  out+='<div class="homebar"><nav class="tabs" style="margin-top:0;position:static;box-shadow:none;flex:1 1 auto;min-width:0">'+[['today','Aujourd\'hui'],['avenir','À venir'],['passes','Passés']].map(function(c){return '<button role="tab" aria-selected="'+(c[0]===homeTab)+'" data-act="home-tab" data-id="'+c[0]+'">'+c[1]+' ('+CNT[c[0]]+')</button>'}).join('')+'</nav>'+(EDIT?'<div class="homeact"><button class="btn primary" data-act="t-new">+ Nouveau tournoi</button><label class="btn" for="homeimport" style="cursor:pointer">Importer une sauvegarde</label>'+(window.padelApi||siteUrl()?'':'<button class="btn" data-act="qr">QR code du site</button>')+'<input type="file" id="homeimport" accept=".json,application/json" hidden></div>':'')+'</div>';
+  if(!L.length)out+='<div class="notice" style="margin-top:14px">'+(homeTab==='avenir'?(EDIT?'Aucun tournoi à venir. Appuie sur « + Nouveau tournoi ».':'Aucun tournoi à venir.'):homeTab==='today'?'Aucun tournoi aujourd\'hui.':'Aucun tournoi passé.')+'</div>';
+  var qrU=siteUrl();
+  if(/^https?:\/\//.test(qrU)){try{var qm=QR.make(qrU),qn=qm.length,qp='';for(var qy=0;qy<qn;qy++)for(var qx=0;qx<qn;qx++)if(qm[qy][qx])qp+='M'+(qx+2)+' '+(qy+2)+'h1v1h-1z';
+    homeQr='<div class="homeqr"'+(EDIT?' data-act="qr" title="Agrandir / imprimer"':'')+'><svg viewBox="0 0 '+(qn+4)+' '+(qn+4)+'" shape-rendering="crispEdges"><path d="'+qp+'" fill="#000"/></svg></div>'}catch(e){homeQr=''}}else homeQr='';
+  var lastM=null,open=false;
+  L.forEach(function(e){
+    var mk=/^\d{4}-\d{2}/.test(e.date||'')?e.date.slice(0,7):'';
+    if(mk!==lastM){
+      if(open)out+='</div>';
+      var lab=mk?MOIS[+mk.slice(5,7)-1]+' '+mk.slice(0,4):'Date à définir';
+      out+='<h3 style="margin:22px 0 0;text-transform:capitalize;color:var(--court)">'+lab+'</h3><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px;margin-top:8px">';
+      lastM=mk;open=true;
+    }
+    out+='<div class="card" style="display:flex;flex-direction:column;gap:6px"><h3 style="margin:0">'+esc(e.name)+'</h3><div class="sub">'+esc(fmtDateShort(e.date))+' · '+e.n+' paire'+(e.n>1?'s':'')+(e.teams?' sur '+e.teams+' prévues':'')+(e.drawn?' · tableau tiré':'')+'</div>';
+    if(confirmDel===e.id)out+='<div class="notice bad" style="margin:6px 0 0"><b>Supprimer ce tournoi définitivement ?</b> <button class="btn sm danger" data-act="t-del-yes" data-id="'+e.id+'">Oui, supprimer</button> <button class="btn sm" data-act="t-del-no">Annuler</button></div>';
+    else out+='<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px"><button class="btn primary" data-act="t-open" data-id="'+e.id+'">'+(EDIT?'Ouvrir':'Voir')+'</button>'+(EDIT?'<button class="btn sm" data-act="t-dup" data-id="'+e.id+'">Dupliquer</button><button class="btn sm danger" data-act="t-del" data-id="'+e.id+'">Supprimer</button>':'')+'</div>';
+    out+='</div>';
+  });
+  if(open)out+='</div>';
+  out+='</div>';
+  document.getElementById('view').innerHTML=out+homeQr;
+}
+function newTournament(){var st=emptyState(16);st._tab='accueil';var id=addT(st);openT(id)}
+function dupTournament(id){
+  var st=null;try{st=JSON.parse(localStorage.getItem(TK+id)||'null')}catch(e){}if(!st)return;
+  ['scores','times','starts','ends','terrains','sets'].forEach(function(k){st[k]={}});
+  st.groups=null;st.sig='';st.bracketDrawn=false;st.drawKey=null;st.order=null;st._tab='accueil';st.meta.date='';
+  addT(st);render();
+}
+function delTournament(id){
+  var up=Date.now();index.dead=index.dead||{};index.dead[id]=up;
+  index.list=index.list.filter(function(x){return x.id!==id});saveIndex();try{localStorage.removeItem(TK+id)}catch(e){}
+  pushDead(id,up);confirmDel=null;render();
+}
+
+
+/* ---------- import ---------- */
+function norm(s){return String(s==null?'':s).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'').trim()}
+function fmtPhone(v){var s=String(v==null?'':v).replace(/[^\d+]/g,'');
+  if(/^\d{9}$/.test(s)) return '0'+s; if(/^33\d{9}$/.test(s)) return '+'+s; return s}
+function cell(v){
+  if(v instanceof Date) return new Date(v.getTime()+12*3600e3).toISOString().slice(0,10);
+  if(v==null) return ''; return String(v).trim();
+}
+function fmtBirth(v){var t=cell(v),m=/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);return m?m[3]+'-'+('0'+m[2]).slice(-2)+'-'+('0'+m[1]).slice(-2):t}
+function parseWide(aoa,hi){
+  var H=aoa[hi].map(norm),c={};
+  function find(re){for(var j=0;j<H.length;j++)if(re.test(H[j]))return j;return -1}
+  [1,2].forEach(function(n){c[n]={nom:find(new RegExp('^nom joueur '+n+'$')),prenom:find(new RegExp('^prenom joueur '+n+'$')),naissance:find(new RegExp('naissance joueur '+n+'$')),
+    licence:find(new RegExp('^licence joueur '+n+'$')),club:find(new RegExp('^club joueur '+n+'$')),classement:find(new RegExp('^classement joueur '+n+'$')),
+    email:find(new RegExp('^(mail|courriel|email) joueur '+n+'$')),tel:find(new RegExp('^(telephone|portable|tel) joueur '+n+'$'))}});
+  var pos=find(/^position/);
+  function pl(r,m){return {nom:cell(r[m.nom]),prenom:cell(r[m.prenom]),naissance:m.naissance<0?'':fmtBirth(r[m.naissance]),licence:String(cell(m.licence<0?'':r[m.licence])).replace(/\.0$/,''),
+    club:m.club<0?'':cell(r[m.club]),classement:String(cell(m.classement<0?'':r[m.classement])).replace(/\.0$/,''),email:m.email<0?'':cell(r[m.email]),tel:m.tel<0?'':fmtPhone(r[m.tel])}}
+  var rows=aoa.slice(hi+1).filter(function(r){return cell(r[c[1].nom])||cell(r[c[2].nom])});
+  if(pos>=0)rows.sort(function(a,b){return (+a[pos]||0)-(+b[pos]||0)});
+  var pairs=rows.map(function(r){var p=blankPair();p.a=pl(r,c[1]);p.b=pl(r,c[2]);return p});
+  return {pairs:pairs,odd:false,players:pairs.length*2};
+}
+function parseRows(aoa){
+  for(var w=0;w<Math.min(aoa.length,10);w++){if(aoa[w].some(function(x){return norm(x)==='nom joueur 1'}))return parseWide(aoa,w)}
+  var hi=-1;
+  for(var i=0;i<Math.min(aoa.length,10);i++){if(aoa[i].some(function(c){return norm(c)==='nom'})){hi=i;break}}
+  var col={nom:1,prenom:2,naissance:3,licence:4,club:5,classement:6,email:7,tel:8};
+  if(hi>=0){
+    col={};
+    aoa[hi].forEach(function(h,j){var n=norm(h);
+      if(n==='nom')col.nom=j;else if(n==='prenom')col.prenom=j;else if(n==='naissance'||n==='date de naissance')col.naissance=j;
+      else if(n==='licence')col.licence=j;else if(n==='club')col.club=j;else if(n==='classement')col.classement=j;
+      else if(/courriel|email|mail/.test(n))col.email=j;else if(/portable|tel|mobile/.test(n))col.tel=j});
+  }
+  var players=[];
+  aoa.slice(hi+1).forEach(function(r){
+    var nom=cell(r[col.nom]); if(!nom) return;
+    players.push({nom:nom,prenom:cell(r[col.prenom]),naissance:cell(r[col.naissance]),licence:String(cell(r[col.licence])).replace(/\.0$/,''),
+      club:cell(r[col.club]),classement:String(cell(r[col.classement])).replace(/\.0$/,''),email:cell(r[col.email]),tel:fmtPhone(r[col.tel])});
+  });
+  var pairs=[];
+  for(var k=0;k+1<players.length;k+=2){var p=blankPair();p.a=players[k];p.b=players[k+1];pairs.push(p)}
+  return {pairs:pairs,odd:players.length%2===1,players:players.length};
+}
+function applyImport(res){
+  if(!res.pairs.length){importMsg='Aucune paire trouvée. Vérifie la ligne d\'en-tête (Nom, Prénom…).';return}
+  S.pairs=res.pairs;S.groups=null;S.demo=false;S.meta.teams=res.pairs.length;
+  importMsg=res.pairs.length+' paires importées'+(res.odd?' (un joueur en trop ignoré)':'')+'.';
+}
+function splitText(t){
+  return t.split(/\r?\n/).filter(function(l){return l.trim()}).map(function(l){return l.indexOf('\t')>=0?l.split('\t'):(l.indexOf(';')>=0?l.split(';'):l.split(','))});
+}
+
+/* ---------- export ---------- */
+async function saveFile(name,blob){
+  try{
+    var d=await window.claude.use('downloads');
+    if(!d){setStatus('Le téléchargement n\'est pas disponible dans cette vue.');return}
+    await d.save({filename:name,data:blob});
+  }catch(e){setStatus(e&&e.code==='declined'?'Téléchargement annulé.':'Impossible de proposer le fichier ('+(e&&e.code||'erreur')+').')}
+}
+function fname(ext){return tName().replace(/[^\w\- ]+/g,'').trim().replace(/\s+/g,'_')+'.'+ext}
+function exportXlsx(){
+  if(!window.XLSX){setStatus('La bibliothèque Excel n\'a pas pu se charger. Utilise « Sauvegarde ».');return}
+  var wb=XLSX.utils.book_new();
+  var ins=[['Rang','Nom','Prénom','Naissance','Licence','Club','Classement','Courriel','Portable','Poids paire']];
+  S.pairs.filter(isActive).sort(function(a,b){return R.by[a.id].seed-R.by[b.id].seed}).forEach(function(p){
+    [p.a,p.b].forEach(function(pl,j){ins.push([j===0?R.by[p.id].seed:'',pl.nom,pl.prenom,pl.naissance,pl.licence,pl.club,num(pl.classement)||'',pl.email,pl.tel,weight(p)])})});
+  XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(ins),'1- Inscriptions');
+  if(R.ok){
+    var po=[[tName()],[S.meta.fmtCode+' : '+S.meta.format],[]];
+    R.pool.forEach(function(P,gi){
+      po.push(['Poule '+(gi+1)]);
+      P.ids.forEach(function(id,k){po.push([k+1,R.names(id),seedTag(id)])});
+      P.ms.forEach(function(m){po.push([m.time,'Terrain '+m.court,R.names(m.a),m.sa==null?'':m.sa,m.sb==null?'':m.sb,R.names(m.b)])});
+      po.push(['Classement','Paire','V','D','JG','JP','Diff']);
+      P.rows.forEach(function(r,k){po.push([k+1,R.names(r.id),r.w,r.l,r.pf,r.pa,r.pf-r.pa])});
+      po.push([]);
+    });
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(po),'2- Poules');
+    var mt=[['Heure','Terrain','Match','Paire A','Paire B','Score A','Score B']];
+    R.list.slice().sort(function(x,y){return x.slot-y.slot||x.court-y.court}).forEach(function(m){
+      mt.push([m.time,m.court,m.title,m.a?R.names(m.a):m.la,m.b?R.names(m.b):m.lb,m.sa==null?'':m.sa,m.sb==null?'':m.sb])});
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(mt),'3- Matchs');
+    var cl=[['Place','Paire','Joueur 1','Joueur 2','Club','Points']];
+    for(var pl=1;pl<=R.N;pl++){var id=R.places[pl],p=id&&R.by[id];
+      var dp=R.dispPlace[pl]||pl;cl.push([dp,p?R.names(id):'',p?p.p.a.prenom+' '+p.p.a.nom:'',p?p.p.b.prenom+' '+p.p.b.nom:'',p?p.p.a.club:'',p?pointsFor(dp):''])}
+    XLSX.utils.book_append_sheet(wb,XLSX.utils.aoa_to_sheet(cl),'4- Classement');
+  }
+  var out=XLSX.write(wb,{type:'array',bookType:'xlsx'});
+  saveFile(fname('xlsx'),new Blob([out],{type:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));
+}
+function exportJson(){saveFile(fname('json'),new Blob([JSON.stringify(S)],{type:'application/json'}))}
+
+function setScore(id,side,v){
+  S.scores[id]=S.scores[id]||{a:'',b:''};S.scores[id][side]=v;
+  var sc=scoreOf(id),ok=finished(sc);
+  if(S.starts[id]){if(ok&&!S.ends[id])S.ends[id]=Date.now();if(!ok)delete S.ends[id]}
+}
+function adjustTeams(n){
+  n=Math.max(0,Math.min(60,n));
+  while(S.pairs.length<n)S.pairs.push(blankPair());
+  while(S.pairs.length>n&&!isActive(S.pairs[S.pairs.length-1]))S.pairs.pop();
+}
+
+/* ---------- événements ---------- */
+document.addEventListener('click',function(e){
+  if(role!=='edit'&&e.target.closest('label,input[type=checkbox]')){e.preventDefault()}
+  if(role!=='edit'){var tt=e.target.closest('[data-tab],[data-act]');if(!tt||!(tt.dataset.tab||['home','t-open','home-tab','ko-filter','pr-pick','pr-win','pr-pseudo','pr-sub','pr-del'].indexOf(tt.dataset.act)>=0))return}
+  var st=e.target.closest('[data-step]');
+  if(st&&!st.disabled){var sid=st.dataset.step,sd=st.dataset.side,cv0=S.scores[sid]&&S.scores[sid][sd],d=+st.dataset.d,n0=cv0===''||cv0==null?(d>0?0:1):parseInt(cv0,10);
+    setScore(sid,sd,String(Math.max(0,Math.min(9,n0+d))));change();return}
+  var t=e.target.closest('[data-tab],[data-act]'); if(!t) return;
+  if(t.dataset.tab){tab=t.dataset.tab;save();render();window.scrollTo(0,0);return}
+  var a=t.dataset.act;
+  if(a==='add-pair'){S.pairs.push(blankPair());S.meta.teams=Math.max(S.meta.teams,S.pairs.length);change()}
+  else if(a==='del-pair'){S.pairs.splice(+t.dataset.i,1);S.groups=null;change()}
+  else if(a==='swap'){
+    var id=t.dataset.id;
+    if(!selPair){selPair=id}
+    else if(selPair===id){selPair=null}
+    else{
+      var g=R.groups.map(function(x){return x.slice()});
+      var A,B;g.forEach(function(gr,gi){gr.forEach(function(x,k){if(x===selPair)A=[gi,k];if(x===id)B=[gi,k]})});
+      g[A[0]][A[1]]=id;g[B[0]][B[1]]=selPair;S.groups=g;selPair=null;
+    }
+    change();
+  }
+  else if(a==='draw')startDraw();
+  else if(a==='draw-skip')endDraw();
+  else if(a==='sort-pairs'){sortByWeight();change()}
+  else if(a==='pmv-up'){movePair(+t.dataset.i,+t.dataset.i-1);change()}
+  else if(a==='pmv-dn'){movePair(+t.dataset.i,+t.dataset.i+2);change()}
+  else if(a==='order-auto'){S.order=null;change()}
+  else if(a==='order-tpl'){setTpl(R.order.slice());S.order=null;flash='Ordre enregistré : il sera utilisé par défaut pour tous les tournois.';change()}
+  else if(a==='order-tpl-clear'){setTpl(null);S.order=null;change()}
+  else if(a==='mv-up'||a==='mv-dn'){
+    var o=R.order.slice(),ix=o.indexOf(t.dataset.id),jx=a==='mv-up'?ix-1:ix+1;
+    if(ix>=0&&jx>=0&&jx<o.length){var tmp=o[ix];o[ix]=o[jx];o[jx]=tmp;S.order=o;change()}
+  }
+  else if(a==='reset-poules'){confirmReset=true;render()}
+  else if(a==='reset-poules-no'){confirmReset=false;render()}
+  else if(a==='reset-poules-yes'){
+    confirmReset=false;
+    R.pool.forEach(function(P){P.ms.forEach(function(m){['scores','starts','ends','terrains','times'].forEach(function(k){if(S[k])delete S[k][m.id]})})});
+    change();
+  }
+  else if(a==='qr'){showQr()}
+  else if(a==='ko-filter'){var kx=+t.dataset.k;koFilter=(koFilter===kx)?null:kx;render()}
+  else if(a==='home')goHome();
+  else if(a==='home-tab'){homeTab=homeTabUser=t.dataset.id;confirmDel=null;render()}
+  else if(a==='t-open')openT(t.dataset.id);
+  else if(a==='t-new')newTournament();
+  else if(a==='t-dup')dupTournament(t.dataset.id);
+  else if(a==='t-del'){confirmDel=t.dataset.id;render()}
+  else if(a==='t-del-no'){confirmDel=null;render()}
+  else if(a==='t-del-yes')delTournament(t.dataset.id);
+  else if(a==='reset-ko'){confirmKo=true;render()}
+  else if(a==='pr-sub'){PR.sub=t.dataset.v;render()}
+  else if(a==='pr-pseudo'){var pn=(document.getElementById('prpseudo').value||'').replace(/[<>&"]/g,'').trim().slice(0,24);if(pn){prSetName(pn);PR.dirty=true;if(Object.keys(PR.picks||{}).length||PR.me)prPush();render()}}
+  else if(a==='pr-pick'){var pm=null;R.list.forEach(function(x){if(x.id===t.dataset.m)pm=x});
+    if(pm&&prName()&&!prLocked(pm)&&pm.a&&pm.b){var side=t.dataset.side,old=PR.picks[pm.id];
+      if(old&&prValid(old,pm)&&old.w===side)delete PR.picks[pm.id];else PR.picks[pm.id]={w:side,a:pm.a,b:pm.b};
+      PR.dirty=true;prPush();render()}}
+  else if(a==='pr-win'){if(prName()&&!prAnyStarted()){var wk=t.dataset.k,wp=t.dataset.p;if(PR.picks[wk]&&PR.picks[wk].p===wp)delete PR.picks[wk];else PR.picks[wk]={p:wp};PR.dirty=true;prPush();render()}}
+  else if(a==='pr-fake'){prFake()}
+  else if(a==='pr-clear'){prLocSet(cur,{});PR.picks={};PR.dirty=true;PR.pushT=null;prLoad()}
+  else if(a==='pr-del'){if(role==='edit'){prApi('vote/'+encodeURIComponent(cur)+'/'+t.dataset.h,{method:'DELETE'}).then(function(){prLoad()},function(){})}}
+  else if(a==='ts-draw'){S.tsSeed=(S.tsSeed||1)+1+Math.floor(Math.random()*1000);S.tsDrawn=true;change()}
+  else if(a==='reset-ko-no'){confirmKo=false;render()}
+  else if(a==='reset-ko-yes'){
+    confirmKo=false;
+    clearTimeout(drawTimer);stopTick();var ovk=document.getElementById('drawcard');if(ovk)ovk.remove();drawAnim=null;S.bracketDrawn=false;S.drawKey=null;S.tsDrawn=false;
+    ['scores','starts','ends','terrains','times','sets'].forEach(function(k){if(S[k])Object.keys(S[k]).forEach(function(id){if(!/^P\d+\.\d+$/.test(id))delete S[k][id]})});
+    change();
+  }
+  else if(a==='reset-groups'){S.groups=null;selPair=null;change()}
+  else if(a==='redraw'){S.drawSeed=(S.drawSeed||1)+1+Math.floor(Math.random()*1000);S.groups=null;change()}
+  else if(a==='flash-ok'){flash='';render()}
+  else if(a==='new'){confirmNew=true;tab='accueil';render();window.scrollTo(0,0)}
+  else if(a==='new-no'){confirmNew=false;render()}
+  else if(a==='new-yes'){confirmNew=false;S=emptyState(12);importMsg='';flash='';change()}
+  else if(a==='import-text'){var tx=document.getElementById('imptext').value;
+    if(tx.trim()){applyImport(parseRows(splitText(tx)))}else importMsg='Colle d\'abord des lignes.';change()}
+  else if(a==='export-xlsx')exportXlsx();
+  else if(a==='export-json')exportJson();
+});
+function endDraw(){clearTimeout(drawTimer);stopTick();var ovx=document.getElementById('drawcard');if(ovx)ovx.remove();drawAnim=null;S.bracketDrawn=true;S.drawKey=R.drawKey;save();render()}
+function startDraw(){
+  clearTimeout(drawTimer);
+  S.bracketSeed=(S.bracketSeed||1)+1+Math.floor(Math.random()*997);
+  Object.keys(S.scores).forEach(function(k){if(!/^P\d+\.\d+$/.test(k)){delete S.scores[k];delete S.starts[k];delete S.ends[k];delete S.times[k];delete S.terrains[k]}});
+  S.order=null;save();R=compute();
+  var refs=[];(R.prelim||[]).concat(R.mainRounds[0]||[]).forEach(function(m){if(m.ia)refs.push(m.ia);if(m.ib)refs.push(m.ib)});
+  refs=refs.filter(function(r){return /^[TB]/.test(r)});
+  function tier(r){var x=/^T(\d+):/.exec(r);return x?+x[1]:R.k+1}
+  for(var i=refs.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1)),t=refs[i];refs[i]=refs[j];refs[j]=t}
+  refs.sort(function(a,b){return tier(b)-tier(a)});
+  if(!refs.length){render();return}
+  var pool=refs.map(function(r){var id=R.slotPair(r);return id?pairLabel(id):R.slotLabel(r)});
+  S.bracketDrawn=false;
+  drawAnim={shown:{},seq:refs,n:0,last:null};render();
+  var spd=refs.length>8?0.6:1;
+  function ovEl(){var o=document.getElementById('drawcard');if(!o){o=document.createElement('div');o.id='drawcard';document.body.appendChild(o)}return o}
+  function openOv(o){
+    var br=document.querySelector('.br'),rc=br?br.getBoundingClientRect():{left:innerWidth/2,top:innerHeight/2,width:0,height:0};
+    o.className='';o.style.transition='none';o.style.left=(rc.left+rc.width/2)+'px';o.style.top=(rc.top+rc.height/2)+'px';
+    o.style.opacity='0';o.style.transform='translate(-50%,-50%) scale(.7)';
+    o.innerHTML='<div class="dc1">&nbsp;</div><div class="dc2">Tirage en cours…</div>';
+    void o.offsetWidth;
+    o.style.transition='opacity .6s ease, transform .6s ease';o.style.opacity='.92';o.style.transform='translate(-50%,-50%) scale(1)';
+  }
+  function step(){
+    if(!drawAnim)return;
+    if(drawAnim.n>=drawAnim.seq.length){drawTimer=setTimeout(endDraw,1500);return}
+    var r=drawAnim.seq[drawAnim.n],id=R.slotPair(r),o=ovEl(),first=drawAnim.n===0;
+    openOv(o);
+    var d1=o.querySelector('.dc1');
+    stopTick();drawTick=setInterval(function(){d1.textContent=pool[Math.floor(Math.random()*pool.length)]},70);
+    drawTimer=setTimeout(function(){
+      stopTick();
+      o.innerHTML='<div class="dc1">'+esc(id?pairLabel(id):R.slotLabel(r))+'</div><div class="dc2">'+esc(R.slotLabel(r).replace(/ \(prov\.\)/,''))+'</div>';
+      o.className='lock';
+      drawTimer=setTimeout(function(){
+        var t=document.querySelector('.mt[data-ref="'+r+'"]');
+        if(t){var tr=t.getBoundingClientRect(),ease='cubic-bezier(.65,0,.25,1)',du=(1.1*spd)+'s';
+          o.style.transition='left '+du+' '+ease+', top '+du+' '+ease+', transform '+du+' '+ease+', opacity '+du+' ease';
+          o.style.left=(tr.left+tr.width/2)+'px';o.style.top=(tr.top+tr.height/2)+'px';
+          o.style.transform='translate(-50%,-50%) scale(.28)';o.style.opacity='.35'}
+        drawTimer=setTimeout(function(){
+          if(!drawAnim)return;
+          o.style.transition='opacity .25s';o.style.opacity='0';
+          drawAnim.shown[r]=1;drawAnim.last=r;drawAnim.n++;render();
+          drawTimer=setTimeout(step,500);
+        },1150*spd);
+      },1700*spd);
+    },(first?3400:2000*spd)+600);
+  }
+  drawTimer=setTimeout(step,300);
+}
+var pDrag=null;
+function clearPOver(){[].forEach.call(document.querySelectorAll('tr.ovt,tr.ovb,tr.dragging'),function(r){r.classList.remove('ovt','ovb','dragging')})}
+document.addEventListener('dragstart',function(e){
+  var h=e.target.closest&&e.target.closest('[data-pdrag]');if(!h)return;
+  pDrag=+h.dataset.pdrag;var tr=h.closest('tr');
+  try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain','p'+pDrag);e.dataTransfer.setDragImage(tr,20,10)}catch(x){}
+  setTimeout(function(){[].forEach.call(document.querySelectorAll('tr[data-prow="'+pDrag+'"]'),function(r){r.classList.add('dragging')})},0);
+});
+document.addEventListener('dragover',function(e){
+  if(pDrag==null)return;var tr=e.target.closest&&e.target.closest('tr[data-prow]');if(!tr)return;
+  e.preventDefault();
+  [].forEach.call(document.querySelectorAll('tr.ovt,tr.ovb'),function(x){x.classList.remove('ovt','ovb')});
+  tr.classList.add(tr.dataset.pj==='0'?'ovt':'ovb');
+});
+document.addEventListener('drop',function(e){
+  if(pDrag==null)return;var tr=e.target.closest&&e.target.closest('tr[data-prow]');
+  if(!tr){pDrag=null;clearPOver();return}
+  e.preventDefault();var ti=+tr.dataset.prow,at=tr.dataset.pj==='0'?ti:ti+1,from=pDrag;pDrag=null;clearPOver();
+  if(at===from||at===from+1)return;
+  movePair(from,at);change();
+});
+document.addEventListener('dragend',function(){pDrag=null;clearPOver()});
+var dragId=null;
+function clearOver(){[].forEach.call(document.querySelectorAll('tr.ovt,tr.ovb,tr.dragging'),function(r){r.classList.remove('ovt','ovb','dragging')})}
+document.addEventListener('dragstart',function(e){
+  var h=e.target.closest&&e.target.closest('[data-drag]');if(!h)return;
+  dragId=h.dataset.drag;var tr=h.closest('tr');
+  try{e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',dragId);e.dataTransfer.setDragImage(tr,20,10)}catch(x){}
+  setTimeout(function(){tr.classList.add('dragging')},0);
+});
+document.addEventListener('dragover',function(e){
+  if(!dragId)return;var tr=e.target.closest&&e.target.closest('tr[data-oid]');if(!tr)return;
+  e.preventDefault();var r=tr.getBoundingClientRect(),top=e.clientY<r.top+r.height/2;
+  [].forEach.call(document.querySelectorAll('tr.ovt,tr.ovb'),function(x){x.classList.remove('ovt','ovb')});
+  tr.classList.add(top?'ovt':'ovb');
+});
+document.addEventListener('drop',function(e){
+  if(!dragId)return;var tr=e.target.closest&&e.target.closest('tr[data-oid]');if(!tr){dragId=null;clearOver();return}
+  e.preventDefault();var tid=tr.dataset.oid,r=tr.getBoundingClientRect(),top=e.clientY<r.top+r.height/2;
+  var id=dragId;dragId=null;clearOver();if(tid===id)return;
+  var o=R.order.filter(function(x){return x!==id}),ti=o.indexOf(tid);
+  o.splice(top?ti:ti+1,0,id);S.order=o;change();
+});
+document.addEventListener('dragend',function(){dragId=null;clearOver()});
+document.addEventListener('input',function(e){
+  if(role!=='edit')return;
+  var t=e.target;
+  if(!t.dataset||!t.dataset.sc)return;
+  t.value=t.value.replace(/\D/g,'').slice(0,2);
+  if(t.value.length<1)return;
+  if(t.dataset.side==='a'){var nx=document.querySelector('[data-sc="'+t.dataset.sc+'"][data-side="b"]');if(nx&&!nx.disabled){nx.focus();nx.select()}}
+  else t.blur();
+});
+document.addEventListener('change',function(e){
+  if(role!=='edit')return;
+  var t=e.target;
+  if(t.id==='impfile'&&t.files[0]){
+    var f=t.files[0], rd=new FileReader();
+    if(/\.csv$/i.test(f.name)){rd.onload=function(){applyImport(parseRows(splitText(String(rd.result))));change()};rd.readAsText(f)}
+    else{
+      if(!window.XLSX){importMsg='La bibliothèque Excel n\'a pas pu se charger : colle le contenu à la place.';change();return}
+      rd.onload=function(){try{
+        var wb=XLSX.read(rd.result,{type:'array',cellDates:true});
+        var nm=wb.SheetNames.filter(function(n){return /inscr/i.test(n)})[0]||wb.SheetNames[0];
+        var aoa=XLSX.utils.sheet_to_json(wb.Sheets[nm],{header:1,raw:true,defval:''});
+        applyImport(parseRows(aoa));
+      }catch(err){importMsg='Fichier illisible.'}change()};
+      rd.readAsArrayBuffer(f);
+    }
+    return;
+  }
+  if(t.id==='loadjson'&&t.files[0]){
+    var r2=new FileReader();r2.onload=function(){try{var o=JSON.parse(r2.result);if(o&&o.pairs&&o.meta){S=o;fixState();tab='accueil';change()}else setStatus('Ce fichier n\'est pas une sauvegarde valide.')}catch(err){setStatus('Sauvegarde illisible.')}};
+    r2.readAsText(t.files[0]);return;
+  }
+  if(t.dataset.meta){
+    var k=t.dataset.meta,v=t.value;
+    if(['dur','courts','pause','teams','poules','seeds','qualified','seedRound'].indexOf(k)>=0){v=toInt(v,0)}
+    S.meta[k]=v;
+    if(k==='fmtCode'){if(FORMATS[v])S.meta.format=FORMATS[v]}
+    if(k==='format'&&FORMATS[S.meta.fmtCode]&&v!==FORMATS[S.meta.fmtCode])S.meta.fmtCode='custom';
+    if(k==='teams')adjustTeams(v);
+    if(k==='poules'||k==='drawMode'||k==='qualified'||k==='seedMode'||k==='seeds')S.groups=null;
+    change();return}
+  if(t.dataset.custompts){
+    if(t.checked){var n=Math.max(R.N,16),arr=[];for(var i=1;i<=n;i++)arr.push(pointsFor(i));S.customPoints=arr}else S.customPoints=null;
+    change();return}
+  if(t.dataset.cp!=null){S.customPoints[+t.dataset.cp]=num(t.value);change();return}
+  if(t.dataset.pi!=null&&t.dataset.f){var p=S.pairs[+t.dataset.pi]; p[t.dataset.pp][t.dataset.f]=t.value.trim();S.demo=false;if(t.dataset.f==='classement'&&num(p.a.classement)&&num(p.b.classement))sortByWeight();change();return}
+  if(t.dataset.sc){setScore(t.dataset.sc,t.dataset.side,t.value.replace(/\D/g,'').slice(0,2));change();return}
+  if(t.dataset.start){var k2=t.dataset.start;
+    if(t.checked){S.starts[k2]=Date.now();delete S.ends[k2]}else{delete S.starts[k2];delete S.ends[k2]}
+    change();return}
+  if(t.dataset.startt){var k3=t.dataset.startt,mm=/^(\d{1,2})\s*[h:]\s*(\d{0,2})$/i.exec(t.value.trim());
+    if(mm){var d=new Date();d.setHours(+mm[1],+(mm[2]||0),0,0);S.starts[k3]=d.getTime()}else if(!t.value.trim()){delete S.starts[k3];delete S.ends[k3]}
+    change();return}
+  if(t.dataset.ter){if(t.value)S.terrains[t.dataset.ter]=t.value;else delete S.terrains[t.dataset.ter];change();return}
+  if(t.dataset.time){var k4=t.dataset.time;if(t.value.trim())S.times[k4]=t.value.trim();else delete S.times[k4];change();return}
+});
+
+document.addEventListener('change',function(e){var t=e.target;if(role!=='edit')return;
+  if(t&&t.id==='homeimport'&&t.files[0]){var r3=new FileReader();r3.onload=function(){try{var o=JSON.parse(r3.result);if(o&&o.pairs&&o.meta){var id=addT(o);openT(id)}else setStatus('Ce fichier n\'est pas une sauvegarde valide.')}catch(err){setStatus('Sauvegarde illisible.')}};r3.readAsText(t.files[0]);t.value=''}
+});
+load(); render(); startSync();
+setInterval(function(){document.querySelectorAll('[data-dur]').forEach(function(e){e.textContent=durText(e.getAttribute('data-dur'))})},15000);
+})();
+</script>
+</body></html>

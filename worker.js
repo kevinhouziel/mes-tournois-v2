@@ -29,7 +29,10 @@ async function isAdmin(req, pw) {
 
 // Petit "magasin" clé/valeur au-dessus de D1 (table kv : key, value)
 function makeStore(db) {
-  return {
+  // Crée la table au premier appel si elle n'existe pas encore
+  const ready = db.prepare('CREATE TABLE IF NOT EXISTS kv (key TEXT PRIMARY KEY, value TEXT NOT NULL)').run();
+  const wrap = (f) => async (...a) => { await ready; return f(...a); };
+  const raw = {
     async get(key) {
       const r = await db.prepare('SELECT value FROM kv WHERE key = ?').bind(key).first();
       return r ? JSON.parse(r.value) : null;
@@ -44,6 +47,7 @@ function makeStore(db) {
       return results.map(r => { try { return JSON.parse(r.value); } catch (e) { return null; } }).filter(Boolean);
     }
   };
+  return { get: wrap(raw.get), setJSON: wrap(raw.setJSON), delete: wrap(raw.delete), listJSON: wrap(raw.listJSON) };
 }
 
 /* ---- Mes Pronos : pronostics publics (un enregistrement par appareil) ---- */
